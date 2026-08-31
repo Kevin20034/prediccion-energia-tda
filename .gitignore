@@ -1,0 +1,40 @@
+# Entorno y secretos
+.env
+.env.local
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Artefactos de modelos entrenados (pesan y se regeneran)
+src/models/artifacts/*
+!src/models/artifacts/.gitkeep
+
+# Datos descargados (los de ejemplo sí se versionan)
+data/
+*.parquet
+
+# Frontend (Node / Vite)
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editores / SO
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

@@ -1,0 +1,35 @@
+[project]
+name = "energia-tda"
+version = "0.1.0"
+description = "Modelo predictivo para la estimación del precio de la energía — Tecnológico de Antioquia"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+markers = [
+    "integracion: pruebas que requieren red o base de datos real (se omiten por defecto)",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",  # longitud de línea: la controla el formateador
+    # `Depends(...)` y `Query(...)` como valores por defecto son EL patrón
+    # idiomático de FastAPI, no un descuido. La regla B008 existe para evitar
+    # objetos mutables compartidos entre llamadas, que no es el caso aquí.
+    "B008",
+]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+disallow_untyped_defs = false
+plugins = []

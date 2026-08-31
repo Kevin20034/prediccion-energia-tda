@@ -1,0 +1,47 @@
+# ---------------------------------------------------------------------------
+# Proyecto: Modelo predictivo de precio de energía — Tecnológico de Antioquia
+# Python 3.13 · Windows/Linux · PostgreSQL (Neon)
+# ---------------------------------------------------------------------------
+
+# --- API REST --------------------------------------------------------------
+fastapi>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.12          # requerido por OAuth2PasswordRequestForm
+
+# --- Configuración y validación -------------------------------------------
+pydantic>=2.9
+pydantic-settings>=2.6
+python-dotenv>=1.0
+email-validator>=2.2
+
+# --- Seguridad -------------------------------------------------------------
+PyJWT>=2.9                        # firma/verificación de JWT
+bcrypt>=4.2                       # hash de contraseñas
+
+# --- Base de datos ---------------------------------------------------------
+SQLAlchemy>=2.0.36
+psycopg2-binary>=2.9.10
+alembic>=1.14
+
+# --- Datos y procesamiento -------------------------------------------------
+pandas>=2.2.3
+numpy>=2.1
+requests>=2.32
+
+# --- Machine Learning ------------------------------------------------------
+scikit-learn>=1.6
+xgboost>=2.1
+joblib>=1.4
+torch>=2.6                        # LSTM (ver README: por qué PyTorch y no TensorFlow)
+
+# --- Exploración (notebooks) ----------------------------------------------
+matplotlib>=3.9
+seaborn>=0.13
+jupyter>=1.1
+
+# --- Calidad y pruebas -----------------------------------------------------
+pytest>=8.3
+pytest-cov>=6.0
+httpx>=0.28                       # cliente de pruebas de FastAPI
+ruff>=0.8
+mypy>=1.13

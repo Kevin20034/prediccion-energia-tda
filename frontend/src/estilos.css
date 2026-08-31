@@ -1,0 +1,713 @@
+/* ===========================================================================
+   Sistema de diseño — Precio de bolsa · TdeA
+
+   La paleta codifica el dominio, no decora:
+     frío  (agua)    = medido, hidráulico, barato, CONOCIDO
+     cálido (escasez)= inferido, térmico, caro, PREDICHO
+
+   Todo dato numérico va en monoespaciada con cifras tabulares. Cuando se
+   comparan cuatro modelos columna a columna, la alineación es funcional.
+   =========================================================================== */
+
+:root {
+  /* Papel de carta hidrológica */
+  --papel: #eaeef2;
+  --panel: #ffffff;
+  --panel-alt: #f5f8fa;
+  --hairline: #cfd8e0;
+  --hairline-fuerte: #a3b3c1;
+
+  /* Tinta */
+  --tinta: #0e1c2a;
+  --tinta-media: #45596b;
+  --tinta-tenue: #7a8ea0;
+
+  /* Semántica del dominio */
+  --agua: #0d6e6e;
+  --agua-fuerte: #095353;
+  --agua-vel: #d6ebea;
+  --escasez: #b45309;
+  --escasez-vel: #fbeada;
+  --nino: #9f1239;
+  --nina: #1d4ed8;
+
+  /* Estructura */
+  --radio: 2px;
+  --sombra: 0 1px 2px rgba(14, 28, 42, 0.06);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: "Archivo", -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cifras tabulares en todo lo monoespaciado */
+.mono,
+.dato,
+input,
+th,
+td {
+  font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--agua);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------- etiquetas */
+.etiqueta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+}
+
+/* ---------------------------------------------------------------- acceso */
+.acceso {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--papel);
+}
+
+.acceso__caja {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-top: 3px solid var(--agua);
+  border-radius: var(--radio);
+  padding: 32px 30px 28px;
+  box-shadow: var(--sombra);
+}
+
+.acceso__marca {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 6px 0 4px;
+}
+
+.acceso__sub {
+  color: var(--tinta-media);
+  font-size: 12.5px;
+  margin: 0 0 26px;
+  line-height: 1.45;
+}
+
+.acceso__campo {
+  display: block;
+  margin-bottom: 14px;
+}
+
+.acceso__campo > span {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.acceso__pistas {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--hairline);
+}
+
+.acceso__pista {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: var(--radio);
+  padding: 5px 6px;
+  margin: 0 -6px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-media);
+  cursor: pointer;
+  text-align: left;
+}
+
+.acceso__pista:hover {
+  background: var(--agua-vel);
+  color: var(--agua-fuerte);
+}
+
+.acceso__pista b {
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+/* ---------------------------------------------------------------- campos */
+input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--tinta);
+  background: var(--panel-alt);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radio);
+}
+
+input:focus {
+  background: var(--panel);
+  border-color: var(--agua);
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- botones */
+.boton {
+  font-family: "Archivo", sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radio);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.boton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.boton--solido {
+  background: var(--agua);
+  color: #fff;
+  width: 100%;
+}
+
+.boton--solido:hover:not(:disabled) {
+  background: var(--agua-fuerte);
+}
+
+.boton--linea {
+  background: var(--panel);
+  border-color: var(--hairline-fuerte);
+  color: var(--tinta);
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.boton--linea:hover:not(:disabled) {
+  border-color: var(--agua);
+  color: var(--agua-fuerte);
+  background: var(--agua-vel);
+}
+
+.boton--fantasma {
+  background: none;
+  border-color: transparent;
+  color: var(--tinta-tenue);
+  padding: 4px 8px;
+  font-size: 11.5px;
+}
+
+.boton--fantasma:hover:not(:disabled) {
+  color: var(--nino);
+}
+
+.boton__tecla {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-tenue);
+}
+
+/* ---------------------------------------------------------------- mensajes */
+.mensaje {
+  padding: 8px 11px;
+  border-radius: var(--radio);
+  font-size: 12px;
+  margin-bottom: 14px;
+  border-left: 3px solid;
+  line-height: 1.4;
+}
+
+.mensaje--error {
+  background: #fdeef1;
+  border-color: var(--nino);
+  color: #7f1d33;
+}
+
+.mensaje--ok {
+  background: var(--agua-vel);
+  border-color: var(--agua);
+  color: var(--agua-fuerte);
+}
+
+/* ---------------------------------------------------------------- armazón */
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 22px;
+  height: 50px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--hairline);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.barra__marca {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.barra__pulso {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--agua);
+  flex: none;
+}
+
+.barra__sitio {
+  color: var(--tinta-tenue);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.barra__hueco {
+  flex: 1;
+}
+
+.barra__usuario {
+  text-align: right;
+  line-height: 1.25;
+}
+
+.barra__correo {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-media);
+}
+
+.lienzo {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 22px 22px 60px;
+}
+
+/* ---------------------------------------------------------------- paneles */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+}
+
+.panel__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.panel__cuerpo {
+  padding: 16px;
+}
+
+/* ------------------------------------------------- la costura: dos números */
+.costura {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.costura__lado {
+  padding: 18px 20px 16px;
+}
+
+.costura__lado--futuro {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    rgba(180, 83, 9, 0.045) 5px,
+    rgba(180, 83, 9, 0.045) 6px
+  );
+}
+
+.costura__eje {
+  width: 1px;
+  background: var(--hairline-fuerte);
+  position: relative;
+}
+
+.costura__eje::after {
+  content: "ahora";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+  background: var(--panel);
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.costura__cifra {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 34px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 7px 0 3px;
+}
+
+.costura__cifra--medida {
+  color: var(--agua-fuerte);
+}
+
+.costura__cifra--inferida {
+  color: var(--escasez);
+  border-bottom: 2px dashed rgba(180, 83, 9, 0.42);
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+.costura__unidad {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tinta-tenue);
+  letter-spacing: 0;
+  margin-left: 5px;
+}
+
+.costura__pie {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-media);
+  margin-top: 5px;
+}
+
+.costura__delta {
+  font-weight: 600;
+}
+
+.costura__delta--sube {
+  color: var(--escasez);
+}
+
+.costura__delta--baja {
+  color: var(--agua);
+}
+
+.costura__vacio {
+  font-size: 12.5px;
+  color: var(--tinta-tenue);
+  margin: 12px 0 3px;
+  max-width: 30ch;
+  line-height: 1.45;
+}
+
+/* ---------------------------------------------------------------- gráfica */
+.gráfica {
+  padding: 14px 10px 6px;
+}
+
+.grafica__leyenda {
+  display: flex;
+  gap: 20px;
+  padding: 0 16px 12px;
+  flex-wrap: wrap;
+}
+
+.grafica__clave {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  color: var(--tinta-media);
+}
+
+.grafica__trazo {
+  width: 22px;
+  height: 0;
+  border-top: 2px solid var(--agua);
+}
+
+.grafica__trazo--inferido {
+  border-top-style: dashed;
+  border-color: var(--escasez);
+}
+
+.pista {
+  background: var(--panel);
+  border: 1px solid var(--hairline-fuerte);
+  border-radius: var(--radio);
+  padding: 7px 10px;
+  box-shadow: 0 3px 10px rgba(14, 28, 42, 0.11);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+}
+
+.pista__momento {
+  color: var(--tinta-tenue);
+  margin-bottom: 3px;
+}
+
+.pista__valor {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- rejilla */
+.rejilla {
+  display: grid;
+  grid-template-columns: minmax(0, 1.62fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+@media (max-width: 940px) {
+  .rejilla {
+    grid-template-columns: 1fr;
+  }
+  .costura {
+    grid-template-columns: 1fr;
+  }
+  .costura__eje {
+    width: auto;
+    height: 1px;
+  }
+  .costura__eje::after {
+    transform: translate(-50%, -50%);
+  }
+  .costura__cifra {
+    font-size: 29px;
+  }
+}
+
+/* ---------------------------------------------------------------- tablas */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla th {
+  text-align: right;
+  padding: 8px 14px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--tinta-tenue);
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+
+.tabla th:first-child,
+.tabla td:first-child {
+  text-align: left;
+}
+
+.tabla td {
+  padding: 8px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--panel-alt);
+  white-space: nowrap;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla__fila--gana {
+  background: var(--agua-vel);
+}
+
+.tabla__fila--gana td {
+  border-bottom-color: rgba(13, 110, 110, 0.14);
+}
+
+.tabla__nombre {
+  font-family: "Archivo", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.tabla__marca {
+  color: var(--agua);
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+.tabla__vacia {
+  padding: 26px 16px;
+  text-align: center;
+  color: var(--tinta-tenue);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- estado */
+.lectura {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px dotted var(--hairline);
+}
+
+.lectura:last-of-type {
+  border-bottom: none;
+}
+
+.lectura__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Embalse: el mecanismo económico central del mercado colombiano */
+.embalse {
+  margin: 16px 0 4px;
+}
+
+.embalse__barra {
+  height: 7px;
+  background: var(--panel-alt);
+  border: 1px solid var(--hairline);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.embalse__nivel {
+  height: 100%;
+  background: var(--agua);
+}
+
+.embalse__nivel--bajo {
+  background: var(--escasez);
+}
+
+.embalse__pie {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-tenue);
+}
+
+.enso {
+  display: inline-block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  border-radius: 1px;
+}
+
+.enso--nino {
+  background: #fbe3e8;
+  color: var(--nino);
+}
+
+.enso--nina {
+  background: #e0e9fd;
+  color: var(--nina);
+}
+
+.enso--neutro {
+  background: var(--panel-alt);
+  color: var(--tinta-media);
+}
+
+/* ---------------------------------------------------------------- acciones */
+.acciones {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.acciones__nota {
+  font-size: 11px;
+  color: var(--tinta-tenue);
+  line-height: 1.45;
+  margin: 2px 0 0;
+}
+
+/* ---------------------------------------------------------------- cargando */
+.cargando {
+  padding: 44px 16px;
+  text-align: center;
+  color: var(--tinta-tenue);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cargando::after {
+  content: "";
+  animation: puntos 1.4s steps(4, end) infinite;
+}
+
+@keyframes puntos {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75% { content: "..."; }
+}
