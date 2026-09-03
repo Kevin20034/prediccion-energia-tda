@@ -1,9 +1,10 @@
-# Predicción del precio de la energía — Tecnológico de Antioquia
+# Pronóstico del mercado eléctrico colombiano — Tecnológico de Antioquia
 
-Software de analítica predictiva que recolecta datos del mercado eléctrico
-colombiano (XM) y variables climáticas, los procesa, entrena varios modelos de
-Machine Learning para estimar el precio de bolsa y expone los resultados
-mediante una API REST.
+Plataforma de analítica predictiva sobre el Sistema Interconectado Nacional.
+Recolecta datos horarios de XM y variables climáticas, entrena y compara nueve
+modelos, y publica en una interfaz web el pronóstico del **precio de bolsa** y de
+la **demanda** a tres horizontes —24 horas, 7 días y 30 días— junto con un mapa
+interactivo de la demanda por departamento.
 
 Trabajo de grado: *«Análisis de modelos de transacción energética y desarrollo
 de un modelo predictivo para la estimación del precio de la energía en el
@@ -13,14 +14,17 @@ Tecnológico de Antioquia»*.
 
 ## Índice
 
+- [Qué hace](#qué-hace)
 - [Arquitectura](#arquitectura)
 - [Requisitos](#requisitos)
 - [Instalación](#instalación)
 - [Configuración (`.env`)](#configuración-env)
 - [Base de datos](#base-de-datos)
 - [Puesta en marcha](#puesta-en-marcha)
+- [Interfaz web](#interfaz-web)
 - [Uso de la API](#uso-de-la-api)
 - [Fuentes de datos](#fuentes-de-datos)
+- [Demanda por departamento](#demanda-por-departamento)
 - [Modelos predictivos](#modelos-predictivos)
 - [Resultados obtenidos](#resultados-obtenidos)
 - [Pruebas](#pruebas)
@@ -30,6 +34,20 @@ Tecnológico de Antioquia»*.
 
 ---
 
+## Qué hace
+
+- **Ingesta 34 variables horarias** del mercado eléctrico desde la API pública de
+  XM, más clima (Open-Meteo) e índice ENSO (NOAA).
+- **Pronostica dos objetivos** —precio de bolsa y demanda real— en **tres
+  horizontes**, con un modelo entrenado específicamente para cada combinación.
+- **Compara nueve modelos de cinco familias** contra un pronóstico ingenuo
+  estacional, y dice cuál gana en cada horizonte y por cuánto.
+- **Acompaña cada pronóstico de una banda de predicción** calibrada con los
+  residuos reales del modelo.
+- **Reparte la demanda comercial de los 29 mercados de XM sobre los 33
+  departamentos** del DANE y la publica en un mapa coroplético interactivo.
+- **Contrasta la demanda observada con la proyección oficial de la UPME.**
+
 ## Arquitectura
 
 Cliente-servidor en tres capas, con el motor analítico como módulo aparte:
@@ -37,24 +55,25 @@ Cliente-servidor en tres capas, con el motor analítico como módulo aparte:
 ```
 ┌──────────────┐   HTTPS/JSON   ┌──────────────────┐   SQLAlchemy   ┌─────────────┐
 │  Frontend    │ ─────────────► │   API REST       │ ─────────────► │ PostgreSQL  │
-│  (pendiente) │ ◄───────────── │   FastAPI + JWT  │ ◄───────────── │   (Neon)    │
+│ React + Vite │ ◄───────────── │   FastAPI + JWT  │ ◄───────────── │   (Neon)    │
 └──────────────┘                └────────┬─────────┘                └─────────────┘
                                          │ invoca
                                          ▼
-                                ┌──────────────────┐     ┌──────────────────────┐
-                                │ Motor analítico  │ ◄── │ XM · Open-Meteo·NOAA │
-                                │ LR·RF·XGB·LSTM   │     │  (fuentes externas)  │
-                                └──────────────────┘     └──────────────────────┘
+                    ┌────────────────────────────────┐   ┌──────────────────────┐
+                    │ Motor analítico                │ ◄─│ XM · Open-Meteo·NOAA │
+                    │ baseline·Ridge·ElasticNet·RF   │   │  (fuentes externas)  │
+                    │ XGB·LightGBM·SARIMAX·HW·LSTM   │   └──────────────────────┘
+                    └────────────────────────────────┘
 ```
 
 | Capa | Módulo | Responsabilidad |
 |---|---|---|
-| Recolección | `src/data_collection/` | Descarga de XM, Open-Meteo y NOAA |
+| Recolección | `src/data_collection/` | Transporte de XM, series del sistema, territorio, UPME, clima |
 | Procesamiento | `src/processing/` | Limpieza, imputación, *feature engineering* |
 | Predictivo | `src/models/` | Entrenamiento, evaluación y selección de modelos |
 | API | `src/api/` | Endpoints REST, autenticación y control de acceso |
-| Persistencia | `src/database/` | Modelos ORM y sesiones |
-| Administrativo | `src/api/routers/usuarios.py` | Usuarios y roles |
+| Persistencia | `src/database/` | Modelos ORM, sesiones y escritura idempotente |
+| Presentación | `frontend/` | Tablero React con mapa y gráficas interactivas |
 
 ---
 
@@ -175,36 +194,72 @@ alembic current             # ver la revisión activa
 ## Puesta en marcha
 
 ```bash
-# 1. Descargar datos históricos (2 años)
-python -m scripts.ingestar_datos --inicio 2024-01-01 --fin 2025-12-31
+# 1. Descargar el histórico del sistema (unos 15 min para 3 años)
+python -m scripts.ingestar_datos --inicio 2023-01-01
 
-# 2. Entrenar y comparar los modelos
-python -m scripts.entrenar
+# 2. Descargar la demanda por departamento y los escenarios de la UPME
+python -m scripts.ingestar_territorio --inicio 2023-01-01
 
-# 3. Levantar la API
+# 3. Entrenar la matriz completa: 2 objetivos × 3 horizontes × 9 modelos
+python -m scripts.entrenar --objetivo precio_bolsa demanda_real --todos-los-horizontes
+
+# 4. Levantar la API
 uvicorn src.api.main:app --reload
+
+# 5. Levantar la interfaz (en otra terminal)
+cd frontend && npm install && npm run dev
 ```
 
-Documentación interactiva: **http://127.0.0.1:8000/docs**
+Interfaz: **http://127.0.0.1:5173** · Documentación de la API:
+**http://127.0.0.1:8000/docs**
+
+El paso 3 tarda cerca de una hora: son dieciocho combinaciones y algunas
+—LSTM y SARIMAX— son lentas por naturaleza. Para una demostración rápida basta
+con `python -m scripts.entrenar`, que entrena solo el precio a 24 horas.
 
 ### Otros comandos
 
 ```bash
-# Entrenar solo algunos modelos (la LSTM es la lenta)
-python -m scripts.entrenar --modelos regresion_lineal random_forest xgboost
+# Entrenar solo algunos modelos (la LSTM y SARIMAX son las lentas)
+python -m scripts.entrenar --modelos baseline_estacional xgboost lightgbm
 
-# Cambiar el horizonte de predicción y el criterio de selección
-python -m scripts.entrenar --horizonte 48 --criterio mae
+# Otro objetivo, otro horizonte, otro criterio de selección
+python -m scripts.entrenar --objetivo demanda_real --horizonte 168 --criterio mae
+
+# Validación walk-forward (multiplica el tiempo por el número de pliegues)
+python -m scripts.entrenar --pliegues 3
+
+# Ingesta rápida, sin el desglose de generación planta a planta
+python -m scripts.ingestar_datos --dias 30 --sin-tecnologias
+
+# Medir el error de las predicciones ya emitidas contra lo que de verdad pasó
+python -m scripts.evaluar_produccion
 
 # Entrenar desde un CSV, sin base de datos
 python -m scripts.entrenar --csv src/data_collection/samples/xm_historico_ejemplo.csv
 
-# Regenerar el conjunto simulado de respaldo
-python scripts/generar_datos_ejemplo.py --anios 3
-
 # Análisis exploratorio
 jupyter notebook notebooks/01_eda.ipynb
 ```
+
+---
+
+## Interfaz web
+
+Cuatro secciones, enlazables por URL (`#pronostico`, `#mapa`, `#modelos`,
+`#datos`):
+
+| Sección | Qué muestra |
+|---|---|
+| **Pronóstico** | La costura entre lo medido y lo inferido, con banda de incertidumbre, para el objetivo y horizonte elegidos. Debajo, mezcla de generación y curva por hora del día. |
+| **Mapa** | Coroplético de la demanda por departamento, con panel de detalle, serie histórica, hora punta y ranking. |
+| **Modelos** | Tabla comparativa de los nueve modelos, gráfica de RMSE con la línea del pronóstico ingenuo, ganador por horizonte e importancia de variables por permutación. |
+| **Datos** | Explorador de series con hasta seis variables, cuatro resoluciones, y el contraste con los escenarios de la UPME. |
+
+El lenguaje visual codifica una sola idea en todas partes: **turquesa es lo
+medido, ámbar es lo inferido**. La regla bajo la barra superior no es un adorno:
+su relleno es el nivel de los embalses del sistema, que es el contexto de
+cualquier cifra del mercado colombiano.
 
 ---
 
@@ -237,10 +292,21 @@ curl http://127.0.0.1:8000/datos?limite=10 \
 | `GET` | `/auth/yo` | Institucional | Perfil propio |
 | `GET` | `/datos` | Institucional | Datos históricos (con filtros y paginación) |
 | `GET` | `/datos/resumen` | Institucional | Estadísticos descriptivos |
-| `POST` | `/datos/ingestar` | Analista | Descargar y guardar datos |
+| `GET` | `/datos/catalogo` | Institucional | Variables graficables, con unidad y disponibilidad |
+| `GET` | `/datos/series` | Institucional | Hasta 6 series agregadas por hora, día, semana o mes |
+| `GET` | `/datos/perfil-horario` | Institucional | Media por hora del día, laborables vs. fin de semana |
+| `POST` | `/datos/ingestar` | Analista | Descargar y guardar datos de XM y clima |
+| `GET` | `/departamentos/mapa` | Institucional | Demanda por departamento para el mapa |
+| `GET` | `/departamentos/{codigo}/serie` | Institucional | Serie de un departamento |
+| `POST` | `/departamentos/ingestar` | Analista | Descargar y repartir la demanda por mercado |
+| `GET` | `/upme/escenarios` | Institucional | Proyección UPME frente a lo observado |
+| `POST` | `/upme/ingestar` | Analista | Descargar los escenarios de la UPME |
 | `POST` | `/entrenar` | Analista | Entrenar y comparar modelos |
-| `GET` | `/entrenamientos` | Analista | Histórico de entrenamientos |
-| `GET` | `/predicciones` | Institucional | Consultar predicciones |
+| `GET` | `/entrenamientos` | Institucional | Histórico de entrenamientos |
+| `GET` | `/modelos/comparacion` | Institucional | Ganador por horizonte, veredicto e importancias |
+| `GET` | `/pronostico` | Institucional | Histórico + pronóstico con banda, en una llamada |
+| `GET` | `/pronostico/horizontes` | Institucional | Qué combinaciones tienen modelo entrenado |
+| `GET` | `/predicciones` | Institucional | Consultar predicciones emitidas |
 | `POST` | `/predicciones` | Institucional | Generar predicciones |
 | `GET` | `/usuarios` | Administrador | Listar usuarios |
 | `POST` | `/usuarios` | Administrador | Crear usuario |
@@ -258,33 +324,42 @@ Las tres son **públicas y gratuitas**, ninguna requiere API key.
 
 ### XM — `https://servapibi.xm.com.co`
 
-Operador del mercado eléctrico colombiano. Dos endpoints con formatos distintos:
+Operador del mercado eléctrico colombiano. Cuatro endpoints con formatos
+distintos, todos sin API key:
 
 - `POST /hourly` → `Items[].HourlyEntities[].Values.Hour01..Hour24`
 - `POST /daily` → `Items[].DailyEntities[].Value`
+- `POST /monthly` → `Items[].MonthlyEntities[].Value`
+- `POST /lists` → catálogos (recursos, agentes, embalses, ríos, métricas)
 
-Métricas utilizadas (todas verificadas contra la API en vivo):
+Cada consulta está limitada a 31 días para las series horarias y diarias, así
+que los rangos se trocean y se descargan **en paralelo** (`src/data_collection/xm_api.py`).
 
-| MetricId | Periodo | Variable |
-|---|---|---|
-| `PrecBolsNaci` | horario | Precio de bolsa nacional — **objetivo** |
-| `DemaReal` | horario | Demanda real |
-| `DemaCome` | horario | Demanda comercial |
-| `Gene` | horario | Generación total |
-| `GeneIdea` | horario | Generación ideal (sin restricciones) |
-| `AporEner` | diario | Aportes hídricos de energía |
-| `VoluUtilDiarEner` | diario | Volumen útil de embalses |
-| `CapaUtilDiarEner` | diario | Capacidad útil de embalses |
-| `PrecEscaAct` | diario | Precio de escasez de activación |
+**Métricas horarias del sistema** (20): precio de bolsa —objetivo—, precio TX1,
+precio de oferta máximo, costo marginal del despacho, precios promedio de
+contratos regulado y no regulado; demanda real, comercial, regulada y no
+regulada; generación total e ideal; pérdidas, restricciones con y sin alivio,
+factor de emisión de CO₂, importaciones y exportaciones; compras en bolsa y en
+contratos.
 
-Las series diarias se propagan a las 24 horas del día (un volumen de embalse es
-un estado diario, no una magnitud horaria). De `VoluUtilDiarEner` y
-`CapaUtilDiarEner` se deriva `volumen_util_embalse` como porcentaje de llenado.
+**Métricas diarias** (14), propagadas a las 24 horas del día porque un estado
+diario es el mismo durante todo el día: aportes hídricos y su media histórica,
+porcentaje de aportes, volumen y capacidad útiles de embalse, porcentaje de
+llenado, vertimientos, la familia de precios de escasez, demanda del SIN,
+demanda máxima de potencia, precio de bolsa ponderado y delta nacional.
 
-> **Nota.** El desglose de generación por tecnología (hidráulica frente a
-> térmica) requiere consultar `Gene` por `Recurso` y mapear cada planta a su
-> tipo. No está implementado: esas columnas quedan nulas con datos reales y solo
-> las llena el conjunto simulado. Es una ampliación natural del trabajo.
+**Desglose de generación por tecnología.** XM publica la generación *planta a
+planta*, no por fuente. Se descarga `Gene` por `Recurso` y se cruza con el
+catálogo `ListadoRecursos`, que trae el `Type` de cada planta, para agregar cinco
+columnas: hidráulica, térmica, solar, eólica y cogeneración. La participación
+hidráulica es la variable estructural que más explica el precio en Colombia.
+
+**Métricas mensuales**: los tres escenarios de demanda proyectada de la UPME
+(`EscDemUPMEAlto`, `EscDemUPMEMedio`, `EscDemUPMEBajo`).
+
+> **Métricas descartadas.** `PrecEscaAct` dejó de publicarse y `PrecTransBolsa`
+> devuelve vacío; el cliente usa `PrecEsca` en su lugar. Se comprobó una a una
+> contra la API en vivo antes de incluirlas.
 
 ### Open-Meteo — reanálisis climático histórico
 
@@ -307,46 +382,117 @@ grado**. La columna `fuente` distingue `XM` de `SIMULADO`.
 
 ---
 
+## Demanda por departamento
+
+La API pública de XM **no tiene entidad "Departamento"**. Lo más cercano es
+`DemaCome` desagregada por `MercadoComercializacion`: 29 mercados con demanda
+horaria real, cuya delimitación es administrativa y no política.
+
+`src/data_collection/departamentos.py` traduce esos mercados a los 33
+departamentos del DANE con una tabla de pesos explícita:
+
+- La mayoría son **atribución directa** (ANTIOQUIA → Antioquia, peso 1,0). Varios
+  mercados pequeños —Cartago, Tuluá, Pereira, Ruitoque, Valle del Sibundoy— se
+  acumulan sobre el departamento que les corresponde.
+- Cuatro son **repartos**: Caribe Mar (Bolívar, Córdoba, Cesar, Sucre), Caribe Sol
+  (Atlántico, Magdalena, La Guajira), Bogotá–Cundinamarca y Cali–Yumbo–Puerto
+  Tejada. Sus pesos son **aproximaciones documentadas**, no mediciones.
+
+La interfaz marca esos departamentos como *estimados* y la tabla `demanda_departamento`
+guarda la marca fila a fila. `verificar_conservacion` comprueba en cada ingesta
+que el reparto **no crea ni destruye energía**: la suma de los departamentos
+reproduce exactamente el total de los mercados de origen, y hay una prueba
+automática que lo garantiza.
+
+Amazonas, Guainía, Vaupés, Vichada y San Andrés no aparecen en ningún mercado
+porque **no están conectados al SIN**. El mapa los pinta en gris con su propia
+entrada en la leyenda: tienen otra fuente de abastecimiento, no demanda cero.
+
+---
+
 ## Modelos predictivos
 
-Los cuatro implementan la misma interfaz (`src/models/base.py`), de modo que el
+Los nueve implementan la misma interfaz (`src/models/base.py`), de modo que el
 orquestador los recorre en bucle y añadir uno nuevo no obliga a tocar nada más.
 
-| Modelo | Librería | Papel en el estudio |
-|---|---|---|
-| Regresión Lineal (Ridge) | scikit-learn | Línea base. Los demás deben superarla. |
-| Random Forest | scikit-learn | No linealidades e interacciones. |
-| XGBoost | xgboost | *Gradient boosting*, con parada temprana. |
-| LSTM | PyTorch | Red recurrente sobre la secuencia completa. |
+| Modelo | Familia | Librería | Papel en el estudio |
+|---|---|---|---|
+| Pronóstico ingenuo estacional | Referencia | — | La vara de medir: repite el ciclo anterior. |
+| Ridge | Lineal | scikit-learn | Relación lineal con multicolinealidad controlada. |
+| ElasticNet | Lineal | scikit-learn | Selecciona variables: los coeficientes que sobreviven son un resultado. |
+| Random Forest | Árboles | scikit-learn | No linealidades e interacciones. |
+| XGBoost | Árboles | xgboost | *Boosting* por niveles, con parada temprana. |
+| LightGBM | Árboles | lightgbm | *Boosting* por hojas: captura mejor los casos raros. |
+| Holt-Winters | Serie temporal | statsmodels | Nivel + tendencia + estacionalidad, sin exógenas. |
+| SARIMAX | Serie temporal | statsmodels | Estructura temporal explícita, con exógenas. |
+| LSTM | Red neuronal | PyTorch | Red recurrente sobre la secuencia completa. |
 
-### Variables predictoras (58 en total)
+### Estrategia multihorizonte
 
-- **Calendario cíclico**: hora, día de semana y mes codificados con seno/coseno.
-  La hora 23 y la hora 0 son adyacentes; sin esta codificación distarían 23.
-- **Rezagos del precio**: 1, 2, 3, 6, 12, 24, 48 y 168 horas.
-- **Ventanas móviles**: media, desviación, máximo y mínimo a 24 h, 168 h y 720 h.
-- **Exógenas**: demanda, hidrología, margen de reserva, brecha de generación,
-  distancia al precio de escasez, clima y fenómeno ENSO.
+Se entrena **un modelo por cada (objetivo, horizonte)** con estrategia *direct
+multi-step*: el modelo de 720 h aprende a mapear las variables del instante *t*
+al valor de *t + 720 h*. La alternativa —predecir una hora y realimentar la
+predicción 720 veces— acumula el error de cada paso sobre el siguiente y a un mes
+vista produce cifras sin ningún valor.
+
+### Variables predictoras (~120)
+
+- **Calendario cíclico**: hora, día de semana, mes y día del año codificados con
+  seno/coseno. La hora 23 y la hora 0 son adyacentes; sin esta codificación
+  distarían 23.
+- **Calendario festivo colombiano**: festivo, víspera y día laboral, calculados
+  con la **ley Emiliani** (buena parte de los festivos se traslada al lunes
+  siguiente, así que una lista de fechas fijas falla justo en los días que más
+  desplazan la demanda).
+- **Rezagos del objetivo**: 1, 2, 3, 6, 12, 24, 48, 72, 168 y 336 horas.
+- **Ventanas móviles**: media, desviación, máximo y mínimo a 24 h, 168 h y 720 h,
+  más la media de la misma hora en los últimos siete días.
+- **Exógenas de mercado**: mezcla de generación por tecnología, margen de
+  reserva, brecha de generación, coste de restricciones por kWh, distancia al
+  precio de escasez, aportes frente a su media histórica y tendencia del embalse
+  a 7 y 30 días.
+- **Clima y ENSO**: temperatura, grados-día de refrigeración, precipitación
+  acumulada e índice ONI.
 
 ### Métricas
 
 | Métrica | Por qué está |
 |---|---|
-| **MAE** | En COP/kWh, directamente interpretable. |
+| **MAE** | En la unidad del objetivo, directamente interpretable. |
 | **RMSE** | Penaliza los errores grandes. Es el criterio de selección por defecto. |
 | **MAPE** | Adimensional, comparable entre periodos con niveles distintos. |
+| **sMAPE** | Corrige la asimetría del MAPE, que favorece a los modelos que subestiman. |
+| **MASE** | Error dividido por el del pronóstico ingenuo **del mismo horizonte**. Es la única que responde a si el modelo aporta algo sobre repetir el pasado. |
 | **R²** | Bondad de ajuste, como referencia. |
+
+### Banda de predicción
+
+La banda que acompaña a cada pronóstico son los cuantiles 10 y 90 de los
+residuos del modelo **sobre el conjunto de prueba**, no sobre el de
+entrenamiento: los residuos de entrenamiento están sistemáticamente
+subestimados —el modelo ya vio esos datos— y producirían una banda demasiado
+estrecha, que es la peor clase de error en un intervalo de confianza porque
+transmite una seguridad que no existe.
+
+`python -m scripts.evaluar_produccion` mide después qué porcentaje de los valores
+reales cayó dentro de la banda declarada.
 
 ### Validez metodológica
 
-Dos salvaguardas, ambas cubiertas por pruebas automáticas:
+Cuatro salvaguardas, todas cubiertas por pruebas automáticas:
 
 - **Sin fuga de información**: todos los rezagos usan `shift()` hacia el pasado
   y las ventanas móviles se calculan sobre series ya desplazadas. Ninguna
   variable del instante *t* entra en la predicción de *t*.
+- **Exclusiones por objetivo**: al predecir demanda quedan fuera la demanda
+  comercial, la regulada, la no regulada y la generación total, que son
+  prácticamente la misma serie y darían un R² espectacular y un modelo inútil.
 - **Partición cronológica**: el conjunto de prueba es siempre el tramo final de
   la serie. Un `train_test_split` aleatorio metería futuro en el entrenamiento y
   produciría métricas optimistas que no se sostienen en producción.
+- **Comparación dentro de un mismo lote**: cada entrenamiento etiqueta sus filas
+  con un identificador, y la tabla comparativa solo mezcla modelos del mismo
+  lote —entrenados con los mismos datos y el mismo corte.
 
 ---
 

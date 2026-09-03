@@ -27,10 +27,13 @@ alembic>=1.14
 pandas>=2.2.3
 numpy>=2.1
 requests>=2.32
+holidays>=0.60                    # calendario festivo colombiano (ley Emiliani)
 
 # --- Machine Learning ------------------------------------------------------
 scikit-learn>=1.6
 xgboost>=2.1
+lightgbm>=4.5                     # boosting por hojas
+statsmodels>=0.14                 # SARIMAX y Holt-Winters
 joblib>=1.4
 torch>=2.6                        # LSTM (ver README: por qué PyTorch y no TensorFlow)
 
