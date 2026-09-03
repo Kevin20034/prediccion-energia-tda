@@ -1,81 +1,78 @@
-import { cop, fechaHora } from "../formato";
+import { decimales, fechaHora } from "../formato";
 
 /**
- * Los dos números que resumen todo el trabajo de grado.
+ * Los dos números que resumen la pantalla, con el eje "ahora" entre ellos.
  *
- * A la izquierda, el último precio MEDIDO. A la derecha, el precio ESTIMADO
- * para dentro de 24 horas. Entre ellos, el eje del "ahora".
- *
- * El subrayado discontinuo bajo la cifra estimada y la trama diagonal de fondo
- * dicen lo mismo sin palabras: ese número no se midió, se infirió.
+ * A la izquierda, lo último que XM midió. A la derecha, lo que el modelo cree
+ * que pasará al final del horizonte. El eje central marca la frontera entre
+ * ambos, y el lado derecho lleva una trama diagonal porque esa región no está
+ * medida. La cifra inferida va subrayada con línea discontinua: nunca se
+ * presenta con el mismo aplomo tipográfico que un dato real.
  */
-export default function Costura({ ultimoDato, prediccion24h, nombreModelo, vencidas }) {
-  const observado = ultimoDato?.precio_bolsa;
-  const estimado = prediccion24h?.precio_estimado;
+export default function Costura({
+  observado,
+  pronostico,
+  unidad,
+  etiquetaHorizonte,
+  nombreModelo,
+}) {
+  const medido = observado?.valor;
+  const estimado = pronostico?.valor_estimado;
 
-  const delta =
-    observado != null && estimado != null && observado !== 0
-      ? ((estimado - observado) / observado) * 100
+  const variacion =
+    medido != null && estimado != null && medido !== 0
+      ? ((estimado - medido) / Math.abs(medido)) * 100
       : null;
 
   return (
     <div className="costura">
       <div className="costura__lado">
-        <div className="etiqueta">Último precio observado</div>
+        <div className="rotulo">Último dato medido</div>
         <div className="costura__cifra costura__cifra--medida">
-          {cop(observado)}
-          <span className="costura__unidad">COP/kWh</span>
+          {decimales(medido, 1)}
+          <span className="cifra__unidad">{unidad}</span>
         </div>
-        <div className="costura__pie">
-          {ultimoDato ? fechaHora(ultimoDato.fecha_hora) : "sin datos"}
-          {ultimoDato?.fuente && ` · ${ultimoDato.fuente}`}
+        <div className="costura__banda">
+          {observado ? fechaHora(observado.fecha_hora) : "sin datos"}
         </div>
       </div>
 
       <div className="costura__eje" aria-hidden="true" />
 
       <div className="costura__lado costura__lado--futuro">
-        <div className="etiqueta">Estimado a 24 horas</div>
+        <div className="rotulo">Pronóstico a {etiquetaHorizonte}</div>
 
-        {estimado != null ? (
+        {estimado == null ? (
+          <p className="costura__vacio">
+            Todavía no hay pronóstico para este horizonte. Entrena el modelo desde la
+            sección Modelos.
+          </p>
+        ) : (
           <>
-            <div>
-              <span className="costura__cifra costura__cifra--inferida">
-                {cop(estimado)}
-                <span className="costura__unidad">COP/kWh</span>
-              </span>
+            <div className="costura__cifra costura__cifra--inferida">
+              {decimales(estimado, 1)}
+              <span className="cifra__unidad">{unidad}</span>
             </div>
-            <div className="costura__pie">
-              {fechaHora(prediccion24h.fecha_objetivo)}
-              {delta != null && (
+            <div className="costura__banda">
+              {variacion != null && (
                 <>
-                  {" · "}
                   <span
-                    className={`costura__delta ${
-                      delta >= 0 ? "costura__delta--sube" : "costura__delta--baja"
-                    }`}
+                    className={`delta delta--${variacion > 0 ? "sube" : "baja"}`}
                   >
-                    {delta >= 0 ? "▲" : "▼"} {Math.abs(delta).toFixed(1)} %
-                  </span>
+                    {variacion > 0 ? "▲" : "▼"} {Math.abs(variacion).toFixed(1)} %
+                  </span>{" "}
+                  frente al último dato ·{" "}
                 </>
               )}
-              {nombreModelo && ` · ${nombreModelo}`}
+              {nombreModelo}
             </div>
-          </>
-        ) : (
-          <p className="costura__vacio">
-            {vencidas ? (
-              <>
-                Las predicciones guardadas ya quedaron atrás: los datos llegan
-                más lejos que ellas. Genera una nueva con{" "}
-                <b>Predecir 24 horas</b>.
-              </>
-            ) : (
-              <>
-                Aún no hay predicciones. Genera una con <b>Predecir 24 horas</b>.
-              </>
+            {pronostico.limite_inferior != null && (
+              <div className="costura__banda">
+                banda 80 %: {decimales(pronostico.limite_inferior, 0)} –{" "}
+                {decimales(pronostico.limite_superior, 0)} {unidad}
+              </div>
             )}
-          </p>
+          </>
         )}
       </div>
     </div>

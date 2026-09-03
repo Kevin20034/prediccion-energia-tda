@@ -1,0 +1,220 @@
+/* ===========================================================================
+   Acceso — "profundidad"
+
+   Es la única pantalla oscura de toda la aplicación, y lo es a propósito: el
+   acceso mira hacia dentro del embalse, y el tablero mira la carta técnica a
+   plena luz. Al entrar, el fondo oscuro se retira hacia arriba —se emerge— y
+   deja el papel del tablero. Esa transición es la que hilvana las dos mitades.
+   =========================================================================== */
+
+.acceso {
+  position: relative;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 28px 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 70% at 50% 118%, rgba(20, 56, 74, 0.85) 0%, transparent 60%),
+    linear-gradient(178deg, var(--hondo-1) 0%, var(--hondo-2) 100%);
+  color: var(--tinta-clara);
+}
+
+/* Lienzo con la curva de carga nacional trazándose sobre la lámina de agua.
+   Es el objeto más característico del dominio: el perfil de consumo de un día
+   colombiano, con su valle de madrugada y su pico de las siete de la tarde. */
+.acceso__lienzo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Retícula de carta, muy tenue: sitúa la curva sobre un instrumento. */
+.acceso__reticula {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(147, 174, 189, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(147, 174, 189, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(120% 80% at 50% 45%, #000 20%, transparent 78%);
+}
+
+.acceso__caja {
+  position: relative;
+  width: 100%;
+  max-width: 392px;
+  /* Bastante más clara que el fondo: con menos diferencia, la tarjeta se
+     disolvía en el agua y dejaba de leerse como una superficie sobre la que
+     escribir. */
+  background: rgba(19, 44, 58, 0.9);
+  backdrop-filter: blur(16px) saturate(125%);
+  border: 1px solid rgba(147, 174, 189, 0.26);
+  border-radius: var(--radio-g);
+  padding: 34px 32px 26px;
+  box-shadow: 0 26px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* El filo superior de la tarjeta es el gradiente agua -> escasez: la tesis
+   entera, en dos píxeles. */
+.acceso__caja::before {
+  content: "";
+  position: absolute;
+  inset: -1px -1px auto;
+  height: 2px;
+  border-radius: var(--radio-g) var(--radio-g) 0 0;
+  background: linear-gradient(90deg, var(--observado) 0%, var(--pronostico) 100%);
+}
+
+.acceso__marca {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 10px 0 6px;
+  color: #fff;
+}
+
+.acceso__marca em {
+  font-style: normal;
+  color: var(--observado);
+}
+
+.acceso__sub {
+  color: var(--tinta-clara-2);
+  font-size: 13px;
+  margin: 0 0 26px;
+  line-height: 1.5;
+  max-width: 34ch;
+}
+
+.acceso .rotulo {
+  color: rgba(147, 174, 189, 0.8);
+}
+
+.acceso__campo {
+  display: block;
+  margin-bottom: 15px;
+}
+
+.acceso__campo > span {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.acceso input {
+  background: rgba(6, 17, 24, 0.6);
+  border-color: rgba(147, 174, 189, 0.22);
+  color: var(--tinta-clara);
+}
+
+.acceso input:hover {
+  border-color: rgba(147, 174, 189, 0.4);
+}
+
+.acceso input:focus {
+  background: rgba(6, 17, 24, 0.85);
+  border-color: var(--observado);
+  box-shadow: 0 0 0 3px rgba(0, 147, 148, 0.22);
+}
+
+.acceso .boton--solido {
+  width: 100%;
+  margin-top: 4px;
+  padding: 11px 15px;
+  font-size: 13px;
+}
+
+.acceso .aviso--error {
+  background: rgba(168, 18, 63, 0.16);
+  border-color: var(--nino);
+  color: #ffc9d6;
+  margin-bottom: 14px;
+}
+
+.acceso__pistas {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(147, 174, 189, 0.15);
+}
+
+.acceso__pista {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radio);
+  padding: 6px 8px;
+  margin: 0 -8px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-clara-2);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s var(--curva), color 0.15s var(--curva),
+    border-color 0.15s var(--curva);
+}
+
+.acceso__pista:hover {
+  background: rgba(0, 147, 148, 0.13);
+  border-color: rgba(0, 147, 148, 0.32);
+  color: #fff;
+}
+
+.acceso__pista b {
+  font-weight: 600;
+  color: var(--tinta-clara);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.acceso__pie {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* --- Entrada escalonada ------------------------------------------------ */
+/* Cada elemento sube y se enfoca con un retardo creciente: la tarjeta se
+   arma delante del usuario en lugar de aparecer de golpe. */
+.emerge {
+  animation: emerge 0.62s var(--curva) both;
+}
+
+@keyframes emerge {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* --- Salida: emerger a la superficie ----------------------------------- */
+.acceso--saliendo {
+  animation: superficie 0.6s var(--curva) forwards;
+}
+
+@keyframes superficie {
+  to {
+    opacity: 0;
+    transform: translateY(-26px) scale(1.03);
+  }
+}
+
+@media (max-width: 460px) {
+  .acceso__caja {
+    padding: 28px 22px 22px;
+  }
+  .acceso__marca {
+    font-size: 23px;
+  }
+}

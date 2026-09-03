@@ -24,6 +24,9 @@ export function setToken(nuevo) {
 /** Se lanza cuando el token caducó o es inválido: obliga a volver al acceso. */
 export class SesionExpirada extends Error {}
 
+/** Se lanza cuando falta un paso previo (ingesta, entrenamiento). */
+export class FaltaPaso extends Error {}
+
 async function pedir(ruta, opciones = {}) {
   const cabeceras = { ...(opciones.headers || {}) };
   if (token) cabeceras.Authorization = `Bearer ${token}`;
@@ -43,7 +46,11 @@ async function pedir(ruta, opciones = {}) {
 
   if (!respuesta.ok) {
     const error = await respuesta.json().catch(() => ({}));
-    throw new Error(traducir(error.detail) || `Error ${respuesta.status}`);
+    const mensaje = traducir(error.detail) || `Error ${respuesta.status}`;
+    // Un 409 significa "falta un paso previo", no "algo se rompió". La interfaz
+    // lo distingue para poder proponer la acción que desbloquea, en vez de
+    // mostrar un error rojo genérico.
+    throw respuesta.status === 409 ? new FaltaPaso(mensaje) : new Error(mensaje);
   }
 
   return respuesta.status === 204 ? null : respuesta.json();
@@ -56,6 +63,17 @@ function traducir(detalle) {
   if (Array.isArray(detalle)) return detalle.map((e) => e.msg || String(e)).join(" · ");
   return String(detalle);
 }
+
+const query = (parametros) => {
+  const p = new URLSearchParams();
+  for (const [clave, valor] of Object.entries(parametros)) {
+    if (valor === undefined || valor === null) continue;
+    if (Array.isArray(valor)) valor.forEach((v) => p.append(clave, v));
+    else p.append(clave, valor);
+  }
+  const texto = p.toString();
+  return texto ? `?${texto}` : "";
+};
 
 // --- Autenticación ---------------------------------------------------------
 
@@ -73,24 +91,54 @@ export const perfil = () => pedir("/auth/yo");
 
 export const resumenDatos = () => pedir("/datos/resumen");
 
-export const ultimosDatos = (limite = 336) => pedir(`/datos?limite=${limite}`);
+export const catalogoVariables = () => pedir("/datos/catalogo");
 
-export const ingerir = (inicio, fin) =>
-  pedir(`/datos/ingestar?fecha_inicio=${inicio}&fecha_fin=${fin}`, { method: "POST" });
+export const ultimosDatos = (limite = 336) => pedir(`/datos${query({ limite })}`);
+
+export const series = ({ variables, desde, hasta, resolucion = "hora", limite = 2000 }) =>
+  pedir(`/datos/series${query({ variables, desde, hasta, resolucion, limite })}`);
+
+export const perfilHorario = (variable = "demanda_real", dias = 90) =>
+  pedir(`/datos/perfil-horario${query({ variable, dias })}`);
+
+export const ingerir = (fecha_inicio, fecha_fin) =>
+  pedir(`/datos/ingestar${query({ fecha_inicio, fecha_fin })}`, { method: "POST" });
+
+// --- Territorio ------------------------------------------------------------
+
+export const mapaDepartamentos = (horas = 24) =>
+  pedir(`/departamentos/mapa${query({ horas })}`);
+
+export const serieDepartamento = (codigo, resolucion = "dia", limite = 180) =>
+  pedir(`/departamentos/${codigo}/serie${query({ resolucion, limite })}`);
+
+export const ingerirDepartamentos = (fecha_inicio, fecha_fin) =>
+  pedir(`/departamentos/ingestar${query({ fecha_inicio, fecha_fin })}`, { method: "POST" });
+
+export const escenariosUpme = () => pedir("/upme/escenarios");
 
 // --- Modelos ---------------------------------------------------------------
 
-export const historicoEntrenamientos = (limite = 40) =>
-  pedir(`/entrenamientos?limite=${limite}`);
+export const historicoEntrenamientos = (parametros = {}) =>
+  pedir(`/entrenamientos${query({ limite: 200, ...parametros })}`);
+
+export const comparacionModelos = (objetivo) =>
+  pedir(`/modelos/comparacion${query({ objetivo })}`);
 
 export const entrenar = (cuerpo = {}) => pedir("/entrenar", { method: "POST", body: cuerpo });
 
-// --- Predicciones ----------------------------------------------------------
+// --- Pronóstico ------------------------------------------------------------
 
-export const listarPredicciones = (limite = 48) => pedir(`/predicciones?limite=${limite}`);
+export const pronostico = ({ objetivo = "precio_bolsa", horizonte = 24, recalcular = false }) =>
+  pedir(`/pronostico${query({ objetivo, horizonte, recalcular })}`);
 
-export const generarPredicciones = (horas = 24) =>
-  pedir("/predicciones", { method: "POST", body: { horas, guardar: true } });
+export const horizontesDisponibles = () => pedir("/pronostico/horizontes");
+
+export const generarPredicciones = (objetivo = "precio_bolsa", horizonte = 24) =>
+  pedir("/predicciones", {
+    method: "POST",
+    body: { objetivo, horizonte, guardar: true },
+  });
 
 // --- Administración --------------------------------------------------------
 

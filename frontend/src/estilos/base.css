@@ -1,0 +1,412 @@
+/* ===========================================================================
+   Sistema de diseño — SIN · Pronóstico energético · TdeA
+
+   Concepto: carta hidrológica. El mercado eléctrico colombiano es, en el
+   fondo, una historia sobre agua: cuando los embalses bajan, entra la
+   generación térmica y el precio sube. La interfaz toma prestado el lenguaje
+   de una carta técnica de embalse —papel frío, retículas finas, cifras
+   monoespaciadas— y le añade una sola idea de color:
+
+     turquesa (agua)   = MEDIDO      · lo que ya ocurrió y XM publicó
+     ámbar   (escasez) = INFERIDO    · lo que el modelo cree que ocurrirá
+
+   El color no decora: codifica el estado epistémico del dato. Esa distinción
+   es el tema del trabajo de grado y por eso gobierna toda la paleta.
+
+   Paleta validada con el verificador de contraste y visión cromática:
+   los cuatro tonos de tecnología pasan separación CVD (ΔE ≥ 8) y banda de
+   luminosidad en modo claro; el oro solar queda por debajo de 3:1 contra el
+   blanco, así que allí donde se usa lleva SIEMPRE etiqueta visible.
+   =========================================================================== */
+
+:root {
+  /* --- Superficies: papel de carta técnica ------------------------------ */
+  --papel: #edf1f4;
+  --panel: #ffffff;
+  --hundido: #f4f7f9;
+  --linea: #d3dde4;
+  --linea-fuerte: #a9bcc8;
+
+  /* --- Tinta ------------------------------------------------------------ */
+  --tinta: #0f2430; /* 16,0:1 sobre papel  */
+  --tinta-2: #4a6376; /*  6,3:1              */
+  --tinta-3: #6f8a9c; /*  3,6:1 — solo rótulos, nunca texto corrido */
+
+  /* --- Semántica del dominio ------------------------------------------- */
+  --observado: #009394;
+  --observado-hondo: #00696a;
+  --observado-velo: #dcefef;
+  --pronostico: #cc6a00;
+  --pronostico-hondo: #8f4a00;
+  --pronostico-velo: #fbeeda;
+
+  /* --- Categórica de tecnologías (orden fijo, nunca ciclado) ----------- */
+  --tec-hidraulica: #009394;
+  --tec-termica: #db6c00;
+  --tec-solar: #d1ae00;
+  --tec-otras: #8b5cd6;
+
+  /* --- ENSO ------------------------------------------------------------- */
+  --nino: #a8123f;
+  --nino-velo: #fbe4ea;
+  --nina: #1d4ed8;
+  --nina-velo: #e3eafd;
+
+  /* --- Rampa secuencial del mapa: un solo tono, claro -> oscuro --------- */
+  --mapa-0: #eef5f5;
+  --mapa-1: #cbe6e5;
+  --mapa-2: #97d2d0;
+  --mapa-3: #5cb8b6;
+  --mapa-4: #1f9b99;
+  --mapa-5: #00787a;
+  --mapa-6: #005457;
+  --mapa-nulo: #e3e9ed;
+
+  /* --- Profundidad: fondo del acceso ------------------------------------ */
+  --hondo-1: #061118;
+  --hondo-2: #0e2430;
+  --hondo-3: #14384a;
+  --tinta-clara: #e8eef2;
+  --tinta-clara-2: #93aebd;
+
+  /* --- Estructura ------------------------------------------------------- */
+  --radio: 3px;
+  --radio-g: 6px;
+  --sombra: 0 1px 2px rgba(15, 36, 48, 0.05), 0 1px 1px rgba(15, 36, 48, 0.04);
+  --sombra-alta: 0 6px 22px rgba(15, 36, 48, 0.13);
+  --barra: 54px;
+
+  /* --- Ritmo ------------------------------------------------------------ */
+  --paso: 4px;
+  --curva: cubic-bezier(0.22, 0.68, 0.3, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--papel);
+  color: var(--tinta);
+  font-family: "Space Grotesk", -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Cifras tabulares en todo lo monoespaciado: cuando se comparan nueve modelos
+   columna a columna, la alineación de los dígitos es funcional, no estética. */
+.mono,
+.dato,
+input,
+select,
+th,
+td {
+  font-family: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--observado);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+::selection {
+  background: var(--observado-velo);
+  color: var(--observado-hondo);
+}
+
+/* ---------------------------------------------------------------- rótulos */
+.rotulo {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+}
+
+.rotulo--fuerte {
+  color: var(--tinta-2);
+}
+
+/* ---------------------------------------------------------------- campos */
+input,
+select {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 13px;
+  color: var(--tinta);
+  background: var(--hundido);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  transition: border-color 0.15s var(--curva), background 0.15s var(--curva);
+}
+
+input:hover,
+select:hover {
+  border-color: var(--linea-fuerte);
+}
+
+input:focus,
+select:focus {
+  background: var(--panel);
+  border-color: var(--observado);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--observado-velo);
+}
+
+/* ---------------------------------------------------------------- botones */
+.boton {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 9px 15px;
+  border-radius: var(--radio);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s var(--curva), border-color 0.15s var(--curva),
+    color 0.15s var(--curva), transform 0.08s var(--curva);
+}
+
+.boton:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.boton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.boton--solido {
+  background: var(--observado);
+  color: #fff;
+}
+
+.boton--solido:hover:not(:disabled) {
+  background: var(--observado-hondo);
+}
+
+.boton--linea {
+  background: var(--panel);
+  border-color: var(--linea-fuerte);
+  color: var(--tinta);
+  width: 100%;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.boton--linea:hover:not(:disabled) {
+  border-color: var(--observado);
+  color: var(--observado-hondo);
+  background: var(--observado-velo);
+}
+
+.boton--fantasma {
+  background: none;
+  border-color: transparent;
+  color: var(--tinta-3);
+  padding: 5px 9px;
+  font-size: 11.5px;
+}
+
+.boton--fantasma:hover:not(:disabled) {
+  color: var(--nino);
+  background: var(--nino-velo);
+}
+
+.boton__nota {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------- conmutador */
+/* Grupo de opciones excluyentes: horizonte, objetivo, resolución. */
+.conmutador {
+  display: inline-flex;
+  background: var(--hundido);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 2px;
+  gap: 2px;
+}
+
+.conmutador__opcion {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 5px 11px;
+  border: none;
+  background: none;
+  color: var(--tinta-2);
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s var(--curva), color 0.15s var(--curva);
+}
+
+.conmutador__opcion:hover:not(:disabled):not([aria-pressed="true"]) {
+  background: var(--panel);
+  color: var(--tinta);
+}
+
+.conmutador__opcion[aria-pressed="true"] {
+  background: var(--panel);
+  color: var(--observado-hondo);
+  box-shadow: var(--sombra);
+}
+
+.conmutador__opcion:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------- avisos */
+.aviso {
+  padding: 10px 13px;
+  border-radius: var(--radio);
+  font-size: 12.5px;
+  border-left: 3px solid;
+  line-height: 1.45;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.aviso--error {
+  background: var(--nino-velo);
+  border-color: var(--nino);
+  color: #7c0f30;
+}
+
+.aviso--ok {
+  background: var(--observado-velo);
+  border-color: var(--observado);
+  color: var(--observado-hondo);
+}
+
+.aviso--falta {
+  background: var(--pronostico-velo);
+  border-color: var(--pronostico);
+  color: var(--pronostico-hondo);
+}
+
+.aviso__cerrar {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.aviso__cerrar:hover {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------- carga */
+.cargando {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--tinta-3);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cargando::after {
+  content: "";
+  animation: puntos 1.4s steps(4, end) infinite;
+}
+
+@keyframes puntos {
+  0% { content: ""; }
+  25% { content: "·"; }
+  50% { content: "··"; }
+  75% { content: "···"; }
+}
+
+/* Barras fantasma mientras llega la respuesta: mantienen la altura del panel
+   para que el contenido no salte cuando por fin aparecen los datos. */
+.fantasma {
+  background: linear-gradient(
+    90deg,
+    var(--hundido) 25%,
+    #eaeff3 37%,
+    var(--hundido) 63%
+  );
+  background-size: 400% 100%;
+  animation: barrido 1.4s ease infinite;
+  border-radius: 2px;
+}
+
+@keyframes barrido {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---------------------------------------------------------------- utilidades */
+.pila {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hueco {
+  flex: 1;
+}
+
+.oculto-visual {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    /* El retardo también, y no es un detalle: varias entradas de esta interfaz
+       son escalonadas y arrancan desde `opacity: 0` con `animation-fill-mode:
+       both`. Anular solo la duración dejaría esos elementos invisibles durante
+       todo su retardo —hasta tres cuartos de segundo en el mapa— justo a quien
+       ha pedido que no haya movimiento. */
+    animation-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
+  }
+}

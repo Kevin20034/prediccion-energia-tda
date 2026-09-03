@@ -1,0 +1,1002 @@
+/* ===========================================================================
+   Tablero — armazón, paneles y secciones
+   =========================================================================== */
+
+/* ---------------------------------------------------------------- barra */
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--linea);
+}
+
+.barra__fila {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: var(--barra);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 22px;
+}
+
+.barra__marca {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+}
+
+/* Latido: señala que lo que se ve es una serie viva, no una captura. */
+.barra__pulso {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--observado);
+  flex: none;
+  animation: latido 2.6s ease-in-out infinite;
+}
+
+@keyframes latido {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 147, 148, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(0, 147, 148, 0); }
+}
+
+.barra__sitio {
+  color: var(--tinta-3);
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.barra__usuario {
+  text-align: right;
+  line-height: 1.25;
+}
+
+.barra__correo {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-2);
+}
+
+/* --- Regla de nivel ----------------------------------------------------- */
+/* El filete bajo la barra ES el nivel de los embalses. No es decoración: la
+   parte teñida mide el porcentaje de llenado del sistema, que es la variable
+   que gobierna el precio en Colombia. Está siempre presente, en todas las
+   secciones, porque siempre es el contexto. */
+.nivel {
+  position: relative;
+  height: 3px;
+  background: var(--linea);
+  overflow: hidden;
+}
+
+.nivel__relleno {
+  height: 100%;
+  background: linear-gradient(90deg, var(--observado-hondo), var(--observado));
+  transform-origin: left;
+  animation: llenar 1.1s var(--curva) both;
+}
+
+.nivel__relleno--bajo {
+  background: linear-gradient(90deg, var(--pronostico-hondo), var(--pronostico));
+}
+
+@keyframes llenar {
+  from { transform: scaleX(0); }
+}
+
+/* ---------------------------------------------------------------- pestañas */
+.pestanas {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pestanas::-webkit-scrollbar {
+  display: none;
+}
+
+.pestana {
+  position: relative;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tinta-2);
+  background: none;
+  border: none;
+  padding: 0 13px;
+  height: var(--barra);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s var(--curva);
+}
+
+.pestana:hover {
+  color: var(--tinta);
+}
+
+.pestana::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  bottom: 0;
+  height: 2px;
+  background: var(--observado);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.22s var(--curva);
+}
+
+.pestana[aria-current="page"] {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.pestana[aria-current="page"]::after {
+  transform: scaleX(1);
+}
+
+/* ---------------------------------------------------------------- lienzo */
+.lienzo {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 22px 22px 72px;
+}
+
+.seccion {
+  animation: entrar 0.34s var(--curva) both;
+}
+
+@keyframes entrar {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+
+.seccion__cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.seccion__titulo {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 3px 0 2px;
+}
+
+.seccion__nota {
+  color: var(--tinta-2);
+  font-size: 12.5px;
+  margin: 0;
+  max-width: 66ch;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- paneles */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-g);
+  box-shadow: var(--sombra);
+}
+
+.panel__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 17px;
+  border-bottom: 1px solid var(--linea);
+}
+
+.panel__titulo {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.panel__cuerpo {
+  padding: 17px;
+}
+
+.panel__cuerpo--ajustado {
+  padding: 10px 8px 4px;
+}
+
+.panel__pie {
+  padding: 10px 17px;
+  border-top: 1px solid var(--linea);
+  background: var(--hundido);
+  border-radius: 0 0 var(--radio-g) var(--radio-g);
+  font-size: 11.5px;
+  color: var(--tinta-2);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- rejillas */
+.rejilla {
+  display: grid;
+  gap: 16px;
+}
+
+.rejilla--cifras {
+  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+}
+
+.rejilla--dos {
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.rejilla--mapa {
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.rejilla--mitad {
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+}
+
+.separado {
+  margin-top: 16px;
+}
+
+@media (max-width: 1000px) {
+  .rejilla--dos,
+  .rejilla--mapa {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------- cifras */
+.cifra {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-g);
+  padding: 15px 17px 14px;
+  box-shadow: var(--sombra);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Filete izquierdo: dice de un vistazo si la cifra es medida o inferida. */
+.cifra::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--linea-fuerte);
+}
+
+.cifra--medida::before {
+  background: var(--observado);
+}
+
+.cifra--inferida::before {
+  background: var(--pronostico);
+}
+
+.cifra__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 29px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  margin: 8px 0 2px;
+}
+
+.cifra--medida .cifra__valor {
+  color: var(--observado-hondo);
+}
+
+.cifra--inferida .cifra__valor {
+  color: var(--pronostico-hondo);
+}
+
+.cifra__unidad {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--tinta-3);
+  letter-spacing: 0;
+  margin-left: 5px;
+}
+
+.cifra__pie {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-2);
+  margin-top: 5px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.delta {
+  font-weight: 600;
+}
+
+.delta--sube {
+  color: var(--pronostico-hondo);
+}
+
+.delta--baja {
+  color: var(--observado-hondo);
+}
+
+/* ------------------------------------------------------ costura (firma) */
+/* El elemento central de la interfaz: el punto exacto donde los datos medidos
+   se acaban y empieza la inferencia del modelo. Izquierda medida, derecha
+   inferida, y entre ambas un eje rotulado "ahora". */
+.costura {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  border-bottom: 1px solid var(--linea);
+}
+
+.costura__lado {
+  padding: 18px 20px 16px;
+  min-width: 0;
+}
+
+.costura__lado--futuro {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 5px,
+    rgba(204, 106, 0, 0.05) 5px,
+    rgba(204, 106, 0, 0.05) 6px
+  );
+}
+
+.costura__eje {
+  width: 1px;
+  background: var(--linea-fuerte);
+  position: relative;
+}
+
+.costura__eje::after {
+  content: "ahora";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(90deg);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+  background: var(--panel);
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
+.costura__cifra {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  margin: 8px 0 3px;
+}
+
+.costura__cifra--medida {
+  color: var(--observado-hondo);
+}
+
+.costura__cifra--inferida {
+  color: var(--pronostico-hondo);
+  border-bottom: 2px dashed rgba(204, 106, 0, 0.45);
+  display: inline-block;
+  padding-bottom: 3px;
+}
+
+.costura__banda {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-2);
+  margin-top: 7px;
+}
+
+.costura__vacio {
+  font-size: 12.5px;
+  color: var(--tinta-3);
+  margin: 12px 0 3px;
+  max-width: 34ch;
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- gráficas */
+.grafica {
+  padding: 12px 8px 4px;
+}
+
+.leyenda {
+  display: flex;
+  gap: 18px;
+  padding: 0 17px 10px;
+  flex-wrap: wrap;
+}
+
+.leyenda__clave {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  color: var(--tinta-2);
+}
+
+.leyenda__trazo {
+  width: 20px;
+  height: 0;
+  border-top: 2px solid currentColor;
+  flex: none;
+}
+
+.leyenda__trazo--punteado {
+  border-top-style: dashed;
+}
+
+.leyenda__cuadro {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+  /* Anillo del color de la superficie: separa cuadros contiguos sin añadir
+     una línea de otro color. */
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
+.leyenda__banda {
+  width: 20px;
+  height: 11px;
+  border-radius: 2px;
+  flex: none;
+  opacity: 0.32;
+}
+
+/* Pista (tooltip) */
+.pista {
+  background: var(--panel);
+  border: 1px solid var(--linea-fuerte);
+  border-radius: var(--radio);
+  padding: 9px 11px;
+  box-shadow: var(--sombra-alta);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  min-width: 148px;
+}
+
+.pista__momento {
+  color: var(--tinta-3);
+  margin-bottom: 5px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pista__linea {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.pista__nombre {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tinta-2);
+}
+
+.pista__punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.pista__valor {
+  font-weight: 600;
+  color: var(--tinta);
+}
+
+.pista__nota {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dotted var(--linea);
+  color: var(--tinta-3);
+  font-size: 10px;
+}
+
+/* ---------------------------------------------------------------- tablas */
+.envoltura-tabla {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.tabla th {
+  text-align: right;
+  padding: 9px 14px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tinta-3);
+  border-bottom: 1px solid var(--linea);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+
+.tabla th:first-child,
+.tabla td:first-child {
+  text-align: left;
+}
+
+.tabla td {
+  padding: 9px 14px;
+  text-align: right;
+  border-bottom: 1px solid var(--hundido);
+  white-space: nowrap;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.tabla tbody tr {
+  transition: background 0.12s var(--curva);
+}
+
+.tabla tbody tr:hover {
+  background: var(--hundido);
+}
+
+.tabla__fila--gana {
+  background: var(--observado-velo);
+}
+
+.tabla__fila--gana:hover {
+  background: #d0e9e9;
+}
+
+.tabla__fila--referencia td {
+  color: var(--tinta-2);
+  font-style: italic;
+}
+
+.tabla__nombre {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+}
+
+.tabla__marca {
+  color: var(--observado);
+  margin-right: 6px;
+  font-weight: 700;
+}
+
+.tabla__vacia {
+  padding: 30px 16px;
+  text-align: center;
+  color: var(--tinta-3);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* Barra dentro de celda: convierte una columna de números en una comparación
+   visual sin necesidad de una segunda gráfica. */
+.barra-celda {
+  position: relative;
+  display: block;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--linea);
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.barra-celda__relleno {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--observado);
+  transform-origin: left;
+  animation: llenar 0.6s var(--curva) both;
+}
+
+/* ---------------------------------------------------------------- insignias */
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  background: var(--hundido);
+  color: var(--tinta-2);
+  border: 1px solid var(--linea);
+  white-space: nowrap;
+}
+
+.insignia--medida {
+  background: var(--observado-velo);
+  color: var(--observado-hondo);
+  border-color: rgba(0, 147, 148, 0.28);
+}
+
+.insignia--estimada {
+  background: var(--pronostico-velo);
+  color: var(--pronostico-hondo);
+  border-color: rgba(204, 106, 0, 0.28);
+}
+
+.insignia--nino {
+  background: var(--nino-velo);
+  color: var(--nino);
+  border-color: rgba(168, 18, 63, 0.25);
+}
+
+.insignia--nina {
+  background: var(--nina-velo);
+  color: var(--nina);
+  border-color: rgba(29, 78, 216, 0.25);
+}
+
+/* ---------------------------------------------------------------- lecturas */
+.lectura {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--linea);
+}
+
+.lectura:last-of-type {
+  border-bottom: none;
+}
+
+.lectura__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------- acciones */
+.acciones {
+  display: grid;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--linea);
+}
+
+.acciones__nota {
+  font-size: 11px;
+  color: var(--tinta-3);
+  line-height: 1.5;
+  margin: 3px 0 0;
+}
+
+/* ---------------------------------------------------------------- mapa */
+.mapa {
+  position: relative;
+  padding: 8px;
+}
+
+.mapa svg {
+  width: 100%;
+  /* Altura acotada, no `auto`. Colombia es un país muy alto y buena parte de
+     ese alto es Amazonía: territorio enorme, fuera del SIN y por tanto gris. A
+     escala natural el mapa medía más de mil píxeles y dejaba la columna de la
+     derecha flotando junto a una mancha vacía. Con la altura fija, el
+     `preserveAspectRatio` por defecto centra la silueta sin deformarla. */
+  height: clamp(420px, 62vh, 660px);
+  display: block;
+}
+
+.mapa__depto {
+  stroke: var(--panel);
+  stroke-width: 0.6;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: filter 0.15s var(--curva);
+  /* Entrada escalonada: los departamentos aparecen por orden de demanda, de
+     mayor a menor, así que el mapa se "lee" solo al cargarse. */
+  animation: aparecer-depto 0.5s var(--curva) both;
+}
+
+@keyframes aparecer-depto {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.mapa__depto:hover {
+  filter: brightness(1.09);
+}
+
+.mapa__depto--sin-sin {
+  cursor: default;
+  fill: var(--mapa-nulo);
+}
+
+.mapa__depto--activo {
+  stroke: var(--tinta);
+  stroke-width: 1.5;
+}
+
+.mapa__etiqueta {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 7px;
+  fill: var(--tinta-2);
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.mapa__flotante {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  transform: translate(-50%, calc(-100% - 12px));
+}
+
+/* Escala secuencial: un solo tono, claro -> oscuro. */
+.escala {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 17px 12px;
+  flex-wrap: wrap;
+}
+
+.escala__tramos {
+  display: flex;
+  height: 9px;
+  border-radius: 2px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid var(--linea);
+}
+
+.escala__tramo {
+  flex: 1;
+}
+
+.escala__extremo {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- ranking */
+.ranking {
+  display: flex;
+  flex-direction: column;
+}
+
+.ranking__fila {
+  display: grid;
+  grid-template-columns: 1.35fr minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 7px 0;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-bottom: 1px dotted var(--linea);
+  font-family: inherit;
+  transition: background 0.12s var(--curva);
+}
+
+.ranking__fila:hover,
+.ranking__fila[aria-pressed="true"] {
+  background: var(--hundido);
+}
+
+.ranking__nombre {
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ranking__nombre span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking__pista {
+  height: 6px;
+  background: var(--hundido);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ranking__relleno {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--observado);
+  transform-origin: left;
+  animation: llenar 0.7s var(--curva) both;
+}
+
+.ranking__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: var(--tinta-2);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- selector */
+.selector-variables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pildora {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10.5px;
+  padding: 4px 9px;
+  border-radius: 11px;
+  border: 1px solid var(--linea);
+  background: var(--panel);
+  color: var(--tinta-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.15s var(--curva), background 0.15s var(--curva),
+    color 0.15s var(--curva);
+}
+
+.pildora:hover:not(:disabled) {
+  border-color: var(--linea-fuerte);
+  color: var(--tinta);
+}
+
+.pildora[aria-pressed="true"] {
+  border-color: currentColor;
+  background: var(--hundido);
+  color: var(--tinta);
+  font-weight: 500;
+}
+
+.pildora:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pildora__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+  background: var(--linea-fuerte);
+}
+
+/* ---------------------------------------------------------------- veredicto */
+/* Bloque de conclusión: la lectura en prosa de la tabla comparativa. Es lo que
+   un jurado quiere leer antes de mirar los números. */
+.veredicto {
+  border-left: 3px solid var(--observado);
+  background: var(--observado-velo);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  padding: 13px 16px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--observado-hondo);
+}
+
+.veredicto--sin-ventaja {
+  border-color: var(--pronostico);
+  background: var(--pronostico-velo);
+  color: var(--pronostico-hondo);
+}
+
+.veredicto strong {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- vacío */
+.vacio {
+  text-align: center;
+  padding: 44px 24px;
+  color: var(--tinta-2);
+}
+
+.vacio__titulo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tinta);
+  margin: 0 0 6px;
+}
+
+.vacio__texto {
+  font-size: 12.5px;
+  margin: 0 auto 16px;
+  max-width: 46ch;
+  line-height: 1.6;
+}
+
+.vacio .boton {
+  display: inline-flex;
+  width: auto;
+}
+
+@media (max-width: 720px) {
+  .barra__fila {
+    height: auto;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+  }
+  .pestana {
+    height: 40px;
+  }
+  .lienzo {
+    padding: 16px 14px 60px;
+  }
+  .costura {
+    grid-template-columns: 1fr;
+  }
+  .costura__eje {
+    width: auto;
+    height: 1px;
+  }
+  .costura__eje::after {
+    transform: translate(-50%, -50%);
+  }
+  .costura__cifra {
+    font-size: 29px;
+  }
+  .barra__usuario {
+    display: none;
+  }
+}
