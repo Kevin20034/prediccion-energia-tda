@@ -7,7 +7,15 @@ import pytest
 
 from src.models import MODELOS_DISPONIBLES
 from src.models.base import ModeloPredictivo
-from src.models.metricas import evaluar, mae, mape, rmse
+from src.models.metricas import (
+    estacionalidad_para,
+    evaluar,
+    mae,
+    mape,
+    mase,
+    rmse,
+    smape,
+)
 from src.models.regresion_lineal import ModeloRegresionLineal
 from src.processing.features import columnas_features, construir_features
 from src.processing.limpieza import limpiar
@@ -47,6 +55,50 @@ class TestMetricas:
     def test_sin_datos(self):
         with pytest.raises(ValueError, match="No hay datos"):
             evaluar(np.array([]), np.array([]))
+
+    def test_smape_es_simetrico(self):
+        """Sobreestimar y subestimar en la misma proporción debe pesar igual.
+
+        Es justo la asimetría que tiene el MAPE clásico y que hace que, al
+        comparar modelos, favorezca sistemáticamente a los que subestiman.
+        """
+        real = np.array([100.0])
+        assert smape(real, np.array([150.0])) == pytest.approx(smape(np.array([150.0]), real))
+
+    def test_mase_compara_contra_el_ingenuo(self):
+        """MASE < 1 significa ganarle a repetir el ciclo anterior; > 1, perder.
+
+        La serie lleva ruido a propósito: con un ciclo perfectamente periódico
+        el pronóstico ingenuo no se equivocaría nunca, el denominador sería cero
+        y el MASE quedaría indefinido (que es lo que la función devuelve, y por
+        eso el caso degenerado se prueba aparte).
+        """
+        rng = np.random.default_rng(3)
+        ciclo = (
+            np.tile(np.sin(np.linspace(0, 2 * np.pi, 24)), 12) * 100
+            + 300
+            + rng.normal(0, 12, 24 * 12)
+        )
+        real = ciclo[-48:]
+
+        assert mase(real, real + 0.5, ciclo, 24) < 1
+        assert mase(real, real + 200, ciclo, 24) > 1
+
+    def test_mase_indefinido_si_el_ingenuo_es_perfecto(self):
+        """Serie exactamente periódica: el ingenuo no falla y no hay con qué escalar."""
+        ciclo = np.tile(np.arange(24, dtype=float), 5)
+        assert np.isnan(mase(ciclo[-24:], ciclo[-24:] + 1, ciclo, 24))
+
+    @pytest.mark.parametrize(
+        ("horizonte", "esperado"), [(1, 24), (24, 24), (168, 168), (720, 720), (36, 48)]
+    )
+    def test_estacionalidad_sigue_al_horizonte(self, horizonte, esperado):
+        """El ingenuo de referencia debe estar al mismo horizonte que el modelo.
+
+        Sin esto, el MASE de un pronóstico a 30 días se dividiría por el error
+        de un ingenuo a 24 h —un problema mucho más fácil— y saldría inflado.
+        """
+        assert estacionalidad_para(horizonte) == esperado
 
 
 @pytest.fixture
@@ -128,19 +180,63 @@ class TestComparacion:
 
         resultado = entrenar_todos(
             datos_crudos,
-            modelos=["regresion_lineal", "random_forest"],
+            modelos=["baseline_estacional", "regresion_lineal", "random_forest"],
             guardar_mejor=False,
         )
 
-        assert len(resultado.resultados) == 2
+        assert len(resultado.resultados) == 3
         assert all(r.ok for r in resultado.resultados)
         assert resultado.mejor is not None
 
         tabla = resultado.tabla_comparativa()
-        assert len(tabla) == 2
+        assert len(tabla) == 3
         assert tabla["mejor"].sum() == 1
         # La tabla viene ordenada por RMSE ascendente.
         assert tabla["RMSE"].is_monotonic_increasing
+
+    def test_guarda_artefacto_con_objetivo_horizonte_y_banda(self, datos_crudos, tmp_path, monkeypatch):
+        """El artefacto tiene que llevar consigo para qué se entrenó.
+
+        Guardar solo el modelo permitiría aplicarlo por error a otro objetivo u
+        otro horizonte y obtener números plausibles y equivocados, que es el
+        fallo más caro que puede tener un sistema predictivo.
+        """
+        from src.models import entrenamiento
+
+        monkeypatch.setattr(entrenamiento, "RUTA_ARTEFACTOS", tmp_path)
+
+        resultado = entrenamiento.entrenar_todos(
+            datos_crudos,
+            modelos=["regresion_lineal"],
+            horizonte=24,
+            guardar_mejor=True,
+        )
+
+        assert resultado.ruta_artefacto is not None
+        artefacto = entrenamiento.cargar_artefacto("precio_bolsa", 24)
+        assert artefacto.objetivo == "precio_bolsa"
+        assert artefacto.horizonte == 24
+        assert artefacto.unidad == "COP/kWh"
+        assert artefacto.residuo_inferior < artefacto.residuo_superior
+        assert artefacto.columnas
+
+    def test_entrena_tambien_la_demanda(self, datos_crudos):
+        from src.models.entrenamiento import entrenar_todos
+
+        resultado = entrenar_todos(
+            datos_crudos,
+            modelos=["baseline_estacional", "regresion_lineal"],
+            objetivo="demanda_real",
+            guardar_mejor=False,
+        )
+        assert resultado.objetivo == "demanda_real"
+        assert resultado.mejor is not None
+
+    def test_objetivo_desconocido(self, datos_crudos):
+        from src.models.entrenamiento import entrenar_todos
+
+        with pytest.raises(ValueError, match="desconocido"):
+            entrenar_todos(datos_crudos, objetivo="temperatura")
 
     def test_modelo_desconocido(self, datos_crudos):
         from src.models.entrenamiento import entrenar_todos

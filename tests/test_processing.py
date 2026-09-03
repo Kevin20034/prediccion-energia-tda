@@ -86,8 +86,45 @@ class TestLimpieza:
 class TestFeatures:
     def test_genera_rezagos_y_calendario(self, datos_crudos):
         features = construir_features(limpiar(datos_crudos), horizonte=24)
-        for esperada in ("precio_lag_24", "precio_lag_168", "hora_sin", "hora_cos"):
+        for esperada in (
+            "objetivo_lag_24",
+            "objetivo_lag_168",
+            "hora_sin",
+            "hora_cos",
+            "es_festivo",
+            "es_dia_laboral",
+        ):
             assert esperada in features.columns
+
+    def test_marca_los_festivos_colombianos(self, datos_crudos):
+        """El 1 de enero es festivo y el 2 de enero de 2025 no lo es.
+
+        Importa porque un festivo tiene el perfil de demanda de un domingo. Se
+        comprueba también un día laborable contiguo para que la prueba falle si
+        alguien marcara todo el calendario como festivo.
+        """
+        features = construir_features(limpiar(datos_crudos), eliminar_nulos=False)
+        por_dia = features.set_index("fecha_hora")["es_festivo"]
+
+        assert por_dia["2025-01-01 10:00"] == 1
+        assert por_dia["2025-01-02 10:00"] == 0
+        # 6 de enero: Reyes, trasladado al lunes por la ley Emiliani. En 2025 el
+        # 6 cae en lunes, así que ese mismo día es festivo.
+        assert por_dia["2025-01-06 10:00"] == 1
+
+    def test_objetivo_demanda_excluye_las_columnas_que_la_filtran(self, datos_crudos):
+        """Al predecir demanda, la demanda comercial no puede entrar como predictora.
+
+        Es prácticamente la misma serie: si se colara, el modelo tendría un R²
+        casi perfecto y ningún valor.
+        """
+        limpio = limpiar(datos_crudos, objetivo="demanda_real")
+        features = construir_features(limpio, objetivo="demanda_real", eliminar_nulos=False)
+        columnas = columnas_features(features, "demanda_real")
+
+        assert "demanda_real" not in columnas
+        for filtrada in ("demanda_comercial", "generacion_total", "perdidas_energia"):
+            assert filtrada not in columnas
 
     def test_codificacion_ciclica_es_continua(self, datos_crudos):
         """La hora 23 y la hora 0 deben quedar contiguas en el círculo."""
@@ -113,7 +150,7 @@ class TestFeatures:
         assert objetivo == pytest.approx(precio_futuro)
 
     def test_no_hay_fuga_de_informacion(self, datos_crudos):
-        """`precio_lag_k` en el instante t debe ser el precio de t-k. Ni más ni menos."""
+        """`objetivo_lag_k` en el instante t debe ser el valor de t-k. Ni más ni menos."""
         limpio = limpiar(datos_crudos)
         features = construir_features(limpio, eliminar_nulos=False)
 
@@ -121,7 +158,7 @@ class TestFeatures:
         fecha = features.loc[fila, "fecha_hora"]
 
         for lag in (1, 24, 168):
-            valor_lag = features.loc[fila, f"precio_lag_{lag}"]
+            valor_lag = features.loc[fila, f"objetivo_lag_{lag}"]
             valor_real = limpio.loc[
                 limpio["fecha_hora"] == fecha - pd.Timedelta(hours=lag), "precio_bolsa"
             ].iloc[0]
@@ -132,9 +169,17 @@ class TestFeatures:
         features = construir_features(limpio, eliminar_nulos=False)
 
         fila = 400
-        media = features.loc[fila, "precio_media_24h"]
+        media = features.loc[fila, "objetivo_media_24h"]
         ventana_correcta = limpio["precio_bolsa"].iloc[fila - 24 : fila].mean()
         assert media == pytest.approx(ventana_correcta, rel=1e-6)
+
+    def test_media_misma_hora_promedia_los_siete_dias_anteriores(self, datos_crudos):
+        limpio = limpiar(datos_crudos)
+        features = construir_features(limpio, eliminar_nulos=False)
+
+        fila = 400
+        esperado = sum(limpio["precio_bolsa"].iloc[fila - 24 * k] for k in range(1, 8)) / 7
+        assert features.loc[fila, "objetivo_media_misma_hora_7d"] == pytest.approx(esperado)
 
     def test_columnas_features_excluye_objetivo_y_fecha(self, datos_crudos):
         features = construir_features(limpiar(datos_crudos))

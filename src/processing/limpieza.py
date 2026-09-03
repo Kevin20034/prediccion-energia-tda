@@ -18,32 +18,22 @@ from __future__ import annotations
 import pandas as pd
 
 from src.core.logging import get_logger
+from src.data_collection.xm_client import COLUMNAS_XM
 
 log = get_logger(__name__)
 
 COLUMNA_TIEMPO = "fecha_hora"
 COLUMNA_OBJETIVO = "precio_bolsa"
 
+#: Columnas climáticas, que no vienen de XM.
+COLUMNAS_CLIMA = ("temperatura", "precipitacion", "humedad_relativa", "indice_oni")
+
 #: Columnas numéricas que esperamos del pipeline completo.
-COLUMNAS_NUMERICAS = [
-    "precio_bolsa",
-    "demanda_real",
-    "demanda_comercial",
-    "generacion_total",
-    "generacion_ideal",
-    "generacion_hidraulica",
-    "generacion_termica",
-    "disponibilidad_real",
-    "aportes_hidricos",
-    "volumen_util_energia",
-    "capacidad_util_energia",
-    "volumen_util_embalse",
-    "precio_escasez",
-    "temperatura",
-    "precipitacion",
-    "humedad_relativa",
-    "indice_oni",
-]
+#:
+#: Se derivan del catálogo del cliente de XM en vez de repetirse a mano: cuando
+#: se añade una métrica nueva basta con declararla en `xm_client` y la limpieza
+#: la trata sin que nadie tenga que acordarse de tocar también esta lista.
+COLUMNAS_NUMERICAS: list[str] = [*COLUMNAS_XM, *COLUMNAS_CLIMA]
 
 
 def unir_fuentes(*dataframes: pd.DataFrame) -> pd.DataFrame:
@@ -72,6 +62,7 @@ def unir_fuentes(*dataframes: pd.DataFrame) -> pd.DataFrame:
 def limpiar(
     df: pd.DataFrame,
     *,
+    objetivo: str = COLUMNA_OBJETIVO,
     rellenar_huecos: bool = True,
     tratar_atipicos: bool = True,
     umbral_iqr: float = 3.0,
@@ -79,7 +70,10 @@ def limpiar(
     """Aplica el pipeline completo de limpieza.
 
     Args:
-        df: datos crudos con al menos `fecha_hora` y `precio_bolsa`.
+        df: datos crudos con al menos `fecha_hora` y la columna objetivo.
+        objetivo: columna sin la cual una fila no sirve para entrenar. Por
+            defecto el precio de bolsa; con `demanda_real` se limpia el mismo
+            conjunto para el otro objetivo del sistema.
         rellenar_huecos: reconstruye la rejilla horaria completa.
         tratar_atipicos: recorta valores extremos por IQR (*winsorizing*).
         umbral_iqr: multiplicador del rango intercuartílico. Se usa 3.0 y no el
@@ -96,8 +90,8 @@ def limpiar(
 
     if COLUMNA_TIEMPO not in df.columns:
         raise ValueError(f"Falta la columna obligatoria '{COLUMNA_TIEMPO}'")
-    if COLUMNA_OBJETIVO not in df.columns:
-        raise ValueError(f"Falta la columna objetivo '{COLUMNA_OBJETIVO}'")
+    if objetivo not in df.columns:
+        raise ValueError(f"Falta la columna objetivo '{objetivo}'")
 
     filas_inicio = len(df)
     df = df.copy()
@@ -119,14 +113,14 @@ def limpiar(
         log.info("Eliminando %d marcas de tiempo duplicadas", duplicados)
         df = df.drop_duplicates(subset=[COLUMNA_TIEMPO], keep="last")
 
-    # 3. Sin precio no hay nada que aprender
-    sin_objetivo = int(df[COLUMNA_OBJETIVO].isna().sum())
+    # 3. Sin el valor objetivo no hay nada que aprender
+    sin_objetivo = int(df[objetivo].isna().sum())
     if sin_objetivo:
-        log.info("Descartando %d filas sin precio de bolsa", sin_objetivo)
-        df = df.dropna(subset=[COLUMNA_OBJETIVO])
+        log.info("Descartando %d filas sin '%s'", sin_objetivo, objetivo)
+        df = df.dropna(subset=[objetivo])
 
     if df.empty:
-        log.warning("No quedaron filas tras descartar las que no tienen precio")
+        log.warning("No quedaron filas tras descartar las que no tienen '%s'", objetivo)
         return df
 
     # 4. Rejilla horaria completa

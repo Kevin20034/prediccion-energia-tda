@@ -10,8 +10,23 @@ Aporta al estudio dos cosas que la regresión lineal no tiene:
 No necesita escalado: los árboles solo comparan valores contra un umbral, así
 que la unidad de medida es irrelevante.
 
-`n_jobs=-1` usa todos los núcleos; con ~17 000 filas y ~50 variables entrena en
-segundos en un portátil normal.
+`n_jobs=-1` usa todos los núcleos; con ~25 000 filas y ~120 variables entrena en
+menos de un minuto en un portátil normal.
+
+Sobre el tamaño del modelo
+--------------------------
+
+Los valores por defecto de scikit-learn (`min_samples_leaf=1`, sin límite de
+profundidad) producen árboles que memorizan casi fila a fila: con este conjunto,
+el bosque serializado superaba los 200 MB y tardaba más de un minuto en cargarse
+en cada arranque de la API. Un modelo que no se puede cargar en un tiempo
+razonable no sirve, por buenas que sean sus métricas.
+
+Los tres controles de aquí —menos árboles, hojas con un mínimo de muestras y
+profundidad acotada— reducen el artefacto en más de un orden de magnitud a
+cambio de una diferencia de RMSE que queda dentro del ruido de la partición.
+Además actúan como regularización: hojas con una sola muestra son sobreajuste
+puro.
 """
 
 from __future__ import annotations
@@ -30,9 +45,9 @@ class ModeloRandomForest(ModeloPredictivo):
 
     def __init__(
         self,
-        n_estimators: int = 300,
-        max_depth: int | None = 18,
-        min_samples_leaf: int = 2,
+        n_estimators: int = 250,
+        max_depth: int | None = 16,
+        min_samples_leaf: int = 8,
         max_features: str | float = "sqrt",
         random_state: int = 42,
         **kwargs,

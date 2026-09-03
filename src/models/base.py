@@ -17,7 +17,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from src.models.metricas import Metricas, evaluar
+from src.models.metricas import ESTACIONALIDAD, Metricas, evaluar
 
 RUTA_ARTEFACTOS = Path(__file__).parent / "artifacts"
 
@@ -45,10 +45,26 @@ class ModeloPredictivo(ABC):
 
     # -- Comportamiento compartido ------------------------------------------
 
-    def evaluar(self, X: pd.DataFrame, y: pd.Series | np.ndarray) -> Metricas:
-        """Predice sobre `X` y devuelve las métricas frente a `y`."""
+    def evaluar(
+        self,
+        X: pd.DataFrame,
+        y: pd.Series | np.ndarray,
+        y_historico: np.ndarray | None = None,
+        estacionalidad: int = ESTACIONALIDAD,
+    ) -> Metricas:
+        """Predice sobre `X` y devuelve las métricas frente a `y`.
+
+        `y_historico` es la serie de entrenamiento: sirve para escalar el MASE
+        con el error del pronóstico ingenuo medido fuera del conjunto que se
+        está evaluando, que es la forma rigurosa de calcularlo.
+        `estacionalidad` debe corresponder al horizonte que se está evaluando
+        (ver `metricas.estacionalidad_para`), o el MASE no será comparable entre
+        horizontes distintos.
+        """
         self._verificar_entrenado()
-        return evaluar(np.asarray(y, dtype=float), self.predict(X))
+        return evaluar(
+            np.asarray(y, dtype=float), self.predict(X), y_historico, estacionalidad
+        )
 
     def importancia_features(self) -> pd.Series | None:
         """Importancia de cada variable, si el modelo la expone.
