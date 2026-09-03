@@ -8,13 +8,14 @@ Documentación interactiva en http://127.0.0.1:8000/docs
 
 from __future__ import annotations
 
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from src.api.routers import auth, datos, entrenar, predicciones, usuarios
+from src.api.routers import auth, datos, entrenar, predicciones, territorio, usuarios
 from src.core.config import settings
 from src.core.logging import configurar_logging, get_logger
 from src.database.session import engine
@@ -30,8 +31,16 @@ desarrollo de un modelo predictivo para la estimación del precio de la energía
 
 1. `POST /auth/login` — autenticarse y obtener el token JWT.
 2. `POST /datos/ingestar` — descargar histórico de XM y clima *(rol Analista)*.
-3. `POST /entrenar` — entrenar y comparar los modelos *(rol Analista)*.
-4. `POST /predicciones` — estimar el precio futuro.
+3. `POST /departamentos/ingestar` — demanda por mercado, repartida por departamento.
+4. `POST /entrenar` — entrenar y comparar los modelos, por objetivo y horizonte.
+5. `GET /pronostico` — histórico + pronóstico con banda de predicción.
+6. `GET /modelos/comparacion` — qué modelo gana en cada horizonte y por qué.
+
+### Objetivos y horizontes
+
+El sistema pronostica dos variables —`precio_bolsa` y `demanda_real`— en tres
+horizontes: **24 h**, **7 días** (168 h) y **30 días** (720 h). Cada combinación
+tiene su propio modelo entrenado con estrategia *direct multi-step*.
 
 ### Roles
 
@@ -39,8 +48,30 @@ desarrollo de un modelo predictivo para la estimación del precio de la energía
 |---|---|
 | `ADMINISTRADOR` | Todo, incluida la gestión de usuarios |
 | `ANALISTA` | Ingerir datos, entrenar modelos, predecir y consultar |
-| `INSTITUCIONAL` | Solo consulta de datos y predicciones |
+| `INSTITUCIONAL` | Solo consulta de datos, mapa y predicciones |
 """
+
+
+def _precargar_modelos() -> None:
+    """Deja los artefactos entrenados en memoria antes de la primera petición.
+
+    Un bosque aleatorio serializado tarda varios segundos en leerse del disco.
+    Si esa lectura ocurre en la primera petición de pronóstico, el primer
+    usuario que abre el tablero paga toda la espera. Se hace aquí, en un hilo
+    aparte para no retrasar el arranque del servidor.
+    """
+    from src.models.entrenamiento import artefactos_disponibles
+
+    try:
+        artefactos = artefactos_disponibles()
+    except Exception as exc:  # noqa: BLE001 - es una optimización, no un requisito
+        log.warning("No se pudieron precargar los modelos: %s", exc)
+        return
+
+    log.info(
+        "Modelos precargados: %s",
+        ", ".join(f"{a.objetivo}/{a.horizonte}h" for a in artefactos) or "ninguno",
+    )
 
 
 @asynccontextmanager
@@ -59,6 +90,9 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # noqa: BLE001 - queremos arrancar igualmente
         log.error("No se pudo conectar a la base de datos: %s", exc)
         log.error("Revisa DATABASE_URL en el archivo .env")
+
+    calentamiento = threading.Thread(target=_precargar_modelos, daemon=True)
+    calentamiento.start()
 
     yield
 
@@ -89,6 +123,7 @@ app.include_router(auth.router)
 app.include_router(datos.router)
 app.include_router(entrenar.router)
 app.include_router(predicciones.router)
+app.include_router(territorio.router)
 app.include_router(usuarios.router)
 
 
