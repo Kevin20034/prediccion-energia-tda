@@ -200,7 +200,7 @@ python -m scripts.ingestar_datos --inicio 2023-01-01
 # 2. Descargar la demanda por departamento y los escenarios de la UPME
 python -m scripts.ingestar_territorio --inicio 2023-01-01
 
-# 3. Entrenar la matriz completa: 2 objetivos × 3 horizontes × 9 modelos
+# 3. Entrenar la matriz completa: 2 objetivos × 3 horizontes
 python -m scripts.entrenar --objetivo precio_bolsa demanda_real --todos-los-horizontes
 
 # 4. Levantar la API
@@ -213,14 +213,18 @@ cd frontend && npm install && npm run dev
 Interfaz: **http://127.0.0.1:5173** · Documentación de la API:
 **http://127.0.0.1:8000/docs**
 
-El paso 3 tarda cerca de una hora: son dieciocho combinaciones y algunas
-—LSTM y SARIMAX— son lentas por naturaleza. Para una demostración rápida basta
-con `python -m scripts.entrenar`, que entrena solo el precio a 24 horas.
+El paso 3 tarda unos minutos con los modelos de producción. Con
+`--todos-los-modelos` sube a cerca de una hora, porque incluye la LSTM y
+SARIMAX. Para una demostración rápida basta con `python -m scripts.entrenar`,
+que entrena solo el precio a 24 horas.
 
 ### Otros comandos
 
 ```bash
-# Entrenar solo algunos modelos (la LSTM y SARIMAX son las lentas)
+# La comparación completa entre las cinco familias (la del trabajo de grado)
+python -m scripts.entrenar --todos-los-modelos --todos-los-horizontes
+
+# Entrenar solo algunos modelos
 python -m scripts.entrenar --modelos baseline_estacional xgboost lightgbm
 
 # Otro objetivo, otro horizonte, otro criterio de selección
@@ -246,20 +250,47 @@ jupyter notebook notebooks/01_eda.ipynb
 
 ## Interfaz web
 
-Cuatro secciones, enlazables por URL (`#pronostico`, `#mapa`, `#modelos`,
-`#datos`):
+Las secciones son enlazables por URL (`#inicio`, `#mapa`, `#pronostico`,
+`#modelos`, `#datos`) y **dependen del rol**.
+
+### Vista de usuario (rol Institucional)
+
+Dos secciones. Quien entra a consultar el estado del mercado no necesita
+comparar RMSE entre modelos ni lanzar ingestas: enseñarle esas pantallas no le da
+poder, le da ruido.
+
+| Sección | Qué muestra |
+|---|---|
+| **Inicio** | Una sola página que se lee de arriba abajo y responde en ese orden a tres preguntas: *cómo está ahora* (titular en lenguaje llano y la cifra del momento), *hacia dónde va* (tres plazos y la gráfica del elegido) y *por qué* (embalses, mezcla de generación y territorio). |
+| **Mapa** | Coroplético de la demanda por departamento, con panel de detalle, serie histórica, hora punta y ranking. |
+
+El titular lo redacta el servidor, no la interfaz: *«El precio de la energía
+subirá alrededor de un 4 % en las próximas 24 horas»*. Es la diferencia entre
+mostrar un número y decir lo que significa.
+
+### Vista técnica (roles Analista y Administrador)
+
+Las dos anteriores más tres:
 
 | Sección | Qué muestra |
 |---|---|
 | **Pronóstico** | La costura entre lo medido y lo inferido, con banda de incertidumbre, para el objetivo y horizonte elegidos. Debajo, mezcla de generación y curva por hora del día. |
-| **Mapa** | Coroplético de la demanda por departamento, con panel de detalle, serie histórica, hora punta y ranking. |
-| **Modelos** | Tabla comparativa de los nueve modelos, gráfica de RMSE con la línea del pronóstico ingenuo, ganador por horizonte e importancia de variables por permutación. |
+| **Modelos** | Tabla comparativa, gráfica de RMSE con la línea del pronóstico ingenuo, ganador por horizonte e importancia de variables por permutación. |
 | **Datos** | Explorador de series con hasta seis variables, cuatro resoluciones, y el contraste con los escenarios de la UPME. |
 
-El lenguaje visual codifica una sola idea en todas partes: **turquesa es lo
-medido, ámbar es lo inferido**. La regla bajo la barra superior no es un adorno:
-su relleno es el nivel de los embalses del sistema, que es el contexto de
-cualquier cifra del mercado colombiano.
+### Lenguaje visual
+
+Codifica una sola idea en todas partes: **turquesa es lo medido, ámbar es lo
+inferido**. La regla bajo la barra superior no es un adorno: su relleno es el
+nivel de los embalses del sistema, que es el contexto de cualquier cifra del
+mercado colombiano.
+
+El movimiento sirve a la lectura y no al espectáculo: la curva de carga viva en
+el acceso y en la portada, las cifras que cuentan hasta su valor para dar
+sensación de magnitud, y el revelado por bloques al desplazarse, que hace que la
+página se cuente en lugar de presentarse entera de golpe. Todo respeta
+`prefers-reduced-motion`, y con esa preferencia activa se ve exactamente el
+mismo contenido, no una versión recortada.
 
 ---
 
@@ -415,17 +446,28 @@ entrada en la leyenda: tienen otra fuente de abastecimiento, no demanda cero.
 Los nueve implementan la misma interfaz (`src/models/base.py`), de modo que el
 orquestador los recorre en bucle y añadir uno nuevo no obliga a tocar nada más.
 
-| Modelo | Familia | Librería | Papel en el estudio |
-|---|---|---|---|
-| Pronóstico ingenuo estacional | Referencia | — | La vara de medir: repite el ciclo anterior. |
-| Ridge | Lineal | scikit-learn | Relación lineal con multicolinealidad controlada. |
-| ElasticNet | Lineal | scikit-learn | Selecciona variables: los coeficientes que sobreviven son un resultado. |
-| Random Forest | Árboles | scikit-learn | No linealidades e interacciones. |
-| XGBoost | Árboles | xgboost | *Boosting* por niveles, con parada temprana. |
-| LightGBM | Árboles | lightgbm | *Boosting* por hojas: captura mejor los casos raros. |
-| Holt-Winters | Serie temporal | statsmodels | Nivel + tendencia + estacionalidad, sin exógenas. |
-| SARIMAX | Serie temporal | statsmodels | Estructura temporal explícita, con exógenas. |
-| LSTM | Red neuronal | PyTorch | Red recurrente sobre la secuencia completa. |
+| Modelo | Familia | Librería | Papel en el estudio | Por defecto |
+|---|---|---|---|---|
+| Pronóstico ingenuo estacional | Referencia | — | La vara de medir: repite el ciclo anterior. | ✓ |
+| Random Forest | Árboles | scikit-learn | No linealidades e interacciones. | ✓ |
+| XGBoost | Árboles | xgboost | *Boosting* por niveles, con parada temprana. | ✓ |
+| LightGBM | Árboles | lightgbm | *Boosting* por hojas: captura mejor los casos raros. | ✓ |
+| Ridge | Lineal | scikit-learn | Relación lineal con multicolinealidad controlada. | |
+| ElasticNet | Lineal | scikit-learn | Selecciona variables: los coeficientes que sobreviven son un resultado. | |
+| Holt-Winters | Serie temporal | statsmodels | Nivel + tendencia + estacionalidad, sin exógenas. | |
+| SARIMAX | Serie temporal | statsmodels | Estructura temporal explícita, con exógenas. | |
+| LSTM | Red neuronal | PyTorch | Red recurrente sobre la secuencia completa. | |
+
+### Los tres de producción, y los otros seis
+
+Por defecto se entrenan solo los cuatro marcados: los tres de árboles, que ganan
+de forma consistente sobre datos reales, más el pronóstico ingenuo, que no
+compite sino que hace de referencia. Así el sistema no carga en el día a día con
+cinco modelos que ya se sabe que pierden y tardan minutos en entrenarse.
+
+Los otros siguen implementados y se entrenan con `--todos-los-modelos`: la
+comparación entre las cinco familias es el objeto del trabajo de grado y tiene
+que poder reproducirse en cualquier momento.
 
 ### Estrategia multihorizonte
 
@@ -498,40 +540,59 @@ Cuatro salvaguardas, todas cubiertas por pruebas automáticas:
 
 ## Resultados obtenidos
 
-Ejecución real sobre datos de XM de 2024-2025 (17.544 registros horarios),
-horizonte de 24 horas, 13.881 muestras de entrenamiento y 3.471 de prueba:
+Ejecución real sobre datos de XM de enero de 2023 a agosto de 2026 (32.136
+registros horarios, 34 variables), partición cronológica 80/20 y modelos de
+producción. **MASE < 1 significa que el modelo le gana al pronóstico ingenuo del
+mismo horizonte**; es la lectura que decide si aporta algo.
 
-| Modelo | MAE | RMSE | MAPE (%) | R² | Tiempo (s) |
-|---|---|---|---|---|---|
-| **Random Forest** | **95.15** | **127.28** | 52.87 | **0.332** | 3.5 |
-| XGBoost | 96.54 | 129.16 | 54.58 | 0.312 | 4.1 |
-| Regresión Lineal | 99.03 | 133.47 | 49.39 | 0.266 | 0.1 |
-| LSTM | 93.07 | 140.16 | **35.55** | 0.190 | 96.9 |
+### Precio de bolsa (COP/kWh)
 
-Variables más influyentes según el modelo ganador: `ratio_precio_escasez`,
-`precio_media_24h`, `precio_lag_1`, `precio_lag_2`, `precio_media_168h`.
+| Horizonte | Ganador | MAE | RMSE | MAPE | MASE | R² |
+|---|---|---|---|---|---|---|
+| 24 h | XGBoost | 66,01 | **102,11** | 21,1 % | 0,958 | 0,894 |
+| 7 días | Random Forest | 131,73 | **170,17** | 43,6 % | 0,876 | 0,706 |
+| 30 días | Random Forest | 171,46 | **219,28** | 50,5 % | 0,649 | 0,518 |
+
+### Demanda real (kWh)
+
+| Horizonte | Ganador | MAE | RMSE | MAPE | MASE | R² |
+|---|---|---|---|---|---|---|
+| 24 h | LightGBM | 284.352 | **357.609** | 2,8 % | 0,627 | 0,901 |
+| 7 días | Random Forest | 366.586 | **486.907** | 3,6 % | 1,164 | 0,817 |
+| 30 días | Random Forest | 571.470 | **706.548** | 5,6 % | 0,778 | 0,615 |
+
+Variables más influyentes del ganador a 24 h de precio, por permutación:
+`objetivo_media_720h`, `volumen_util_embalse`, `objetivo_media_misma_hora_7d`,
+`capacidad_util_energia` y `ratio_precio_escasez`.
 
 ### Lectura honesta de estos números
 
 Conviene discutirlos en el trabajo en lugar de presentarlos sin más:
 
-- **Un R² de 0,33 es modesto**, pero no anómalo: predecir el precio *spot* a 24
-  horas es intrínsecamente difícil, porque depende de decisiones de oferta y de
-  eventos que no están en los datos históricos.
-- **Los cuatro modelos quedan muy juntos.** Random Forest gana por poco a
-  XGBoost, y la Regresión Lineal se queda a un 5 % del ganador. Eso sugiere que
-  la mayor parte de la señal aprovechable es lineal y viene de los rezagos.
-- **La LSTM tiene el mejor MAE y MAPE pero el peor RMSE.** No es contradictorio:
-  acierta mejor en el caso típico y falla más en los picos. Con 96 segundos de
-  entrenamiento frente a 3,5 del Random Forest, la relación coste-beneficio no
-  la favorece en este conjunto.
-- **Las variables de precio dominan sobre las exógenas.** El clima y la
-  hidrología aportan menos de lo que la hipótesis inicial sugería, al menos en
-  el horizonte de 24 horas y con solo dos años de datos.
+- **El R² de precio a 24 h subió de 0,33 a 0,89** al pasar de 9 a 34 variables e
+  incorporar el desglose de generación por tecnología. La mejora no viene de los
+  modelos, viene de los datos: la hidrología y la mezcla de generación aparecen
+  ahora entre las variables más influyentes, justo donde la hipótesis inicial
+  del trabajo decía que estarían.
+- **La demanda se pronostica mucho mejor que el precio.** Un MAPE del 2,8 % a 24
+  horas frente al 21 % del precio. Tiene sentido: la demanda la gobierna el
+  calendario —hora, día de la semana, festivos—, mientras que el precio depende
+  además de decisiones de oferta que no están en los datos.
+- **Cinco de las seis combinaciones superan al pronóstico ingenuo.** La
+  excepción es la demanda a 7 días (MASE 1,164), y el motivo es interesante: el
+  ciclo semanal de la demanda es tan regular que "lo mismo que este día la semana
+  pasada" es un rival muy duro a ese horizonte concreto.
+- **A 7 y 30 días de precio, Random Forest gana con claridad y los de *boosting*
+  se hunden** (MASE 1,24 y 1,10). El promediado de árboles independientes
+  generaliza mejor cuando la señal es débil; el *boosting*, que ajusta cada árbol
+  al error del anterior, sobreajusta el ruido.
+- **El R² negativo de LightGBM y XGBoost a 30 días** no es un fallo: significa
+  literalmente que predecir la media habría salido mejor. Está en la tabla
+  porque es el resultado.
 
-Vías de mejora razonables: ampliar el histórico a 5-10 años (cubriría un ciclo
-ENSO completo), incorporar el desglose de generación por tecnología, y probar
-horizontes más cortos (1-6 horas), donde la autocorrelación es mucho mayor.
+Vías de mejora razonables: ampliar el histórico para cubrir un ciclo ENSO
+completo, incorporar la disponibilidad declarada de las plantas térmicas, y
+probar horizontes cortos (1-6 horas), donde la autocorrelación es mucho mayor.
 
 ---
 
