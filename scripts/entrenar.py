@@ -22,7 +22,7 @@ import pandas as pd
 from src.api.routers.entrenar import _cargar_datos
 from src.core.logging import get_logger
 from src.database.session import SessionLocal
-from src.models import MODELOS_DISPONIBLES
+from src.models import MODELOS_DISPONIBLES, MODELOS_PRODUCCION
 from src.models.entrenamiento import HORIZONTES, ResultadoEntrenamiento, entrenar_todos
 from src.processing.features import OBJETIVOS
 
@@ -37,7 +37,16 @@ def main() -> None:
         "--modelos",
         nargs="+",
         choices=sorted(MODELOS_DISPONIBLES),
-        help="Subconjunto a entrenar (por defecto, todos)",
+        help=f"Subconjunto a entrenar (por defecto: {', '.join(MODELOS_PRODUCCION)})",
+    )
+    parser.add_argument(
+        "--todos-los-modelos",
+        action="store_true",
+        help=(
+            "Entrena las cinco familias completas en vez de solo los de "
+            "producción. Es la comparación del trabajo de grado; tarda bastante "
+            "más porque incluye la LSTM y SARIMAX."
+        ),
     )
     parser.add_argument(
         "--objetivo",
@@ -73,6 +82,7 @@ def main() -> None:
     args = parser.parse_args()
 
     horizontes = list(HORIZONTES.values()) if args.todos_los_horizontes else [args.horizonte]
+    modelos = args.modelos or (list(MODELOS_DISPONIBLES) if args.todos_los_modelos else None)
 
     if args.csv:
         df = pd.read_csv(args.csv, parse_dates=["fecha_hora"])
@@ -98,7 +108,7 @@ def main() -> None:
                     entrenar_todos(
                         df,
                         db=db,
-                        modelos=args.modelos,
+                        modelos=modelos,
                         objetivo=objetivo,
                         horizonte=horizonte,
                         proporcion_test=args.test,

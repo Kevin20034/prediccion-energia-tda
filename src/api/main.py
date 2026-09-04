@@ -15,7 +15,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from src.api.routers import auth, datos, entrenar, predicciones, territorio, usuarios
+from src.api.routers import (
+    auth,
+    datos,
+    entrenar,
+    panorama,
+    predicciones,
+    territorio,
+    usuarios,
+)
 from src.core.config import settings
 from src.core.logging import configurar_logging, get_logger
 from src.database.session import engine
@@ -120,6 +128,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(panorama.router)
 app.include_router(datos.router)
 app.include_router(entrenar.router)
 app.include_router(predicciones.router)

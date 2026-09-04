@@ -51,7 +51,7 @@ from sqlalchemy.orm import Session
 
 from src.core.logging import get_logger
 from src.database.models import EjecucionEntrenamiento
-from src.models import FAMILIAS, MODELOS_DISPONIBLES
+from src.models import FAMILIAS, MODELOS_DISPONIBLES, MODELOS_PRODUCCION
 from src.models.base import RUTA_ARTEFACTOS, ModeloPredictivo
 from src.models.metricas import Metricas, estacionalidad_para
 from src.processing.features import (
@@ -189,7 +189,9 @@ def entrenar_todos(
     Args:
         df: datos históricos crudos (con `fecha_hora` y la columna objetivo).
         db: sesión opcional; si se pasa, se registran las métricas en la BD.
-        modelos: subconjunto de nombres a entrenar. Por defecto, todos.
+        modelos: subconjunto de nombres a entrenar. Por defecto, los de
+            producción (`MODELOS_PRODUCCION`); pasar `list(MODELOS_DISPONIBLES)`
+            para la comparación completa entre familias.
         objetivo: `precio_bolsa` o `demanda_real`.
         horizonte: horas hacia adelante a predecir (24, 168 o 720 en la interfaz).
         proporcion_test: tamaño del conjunto de prueba (corte cronológico).
@@ -204,7 +206,7 @@ def entrenar_todos(
         raise ValueError(f"criterio debe ser uno de {sorted(METRICAS_VALIDAS)}")
     validar_objetivo(objetivo)
 
-    nombres = modelos or list(MODELOS_DISPONIBLES)
+    nombres = modelos or list(MODELOS_PRODUCCION)
     desconocidos = set(nombres) - set(MODELOS_DISPONIBLES)
     if desconocidos:
         raise ValueError(
@@ -333,7 +335,18 @@ def cargar_artefacto(
     return _cargar_cacheado(str(ruta), ruta.stat().st_mtime_ns)
 
 
-@lru_cache(maxsize=8)
+#: Artefactos que se mantienen en memoria a la vez.
+#:
+#: Es un tope de memoria, no de rendimiento. Un bosque aleatorio deserializado
+#: ocupa bastante más que su archivo, y con la caché sin acotar bastaba con
+#: visitar los seis pares objetivo/horizonte para que el proceso se quedara sin
+#: memoria y el servidor cerrara la conexión a mitad de respuesta. Cuatro cubre
+#: los tres horizontes de un objetivo más el que se estaba mirando antes, que
+#: es el patrón real de navegación.
+ARTEFACTOS_EN_MEMORIA = 4
+
+
+@lru_cache(maxsize=ARTEFACTOS_EN_MEMORIA)
 def _cargar_cacheado(ruta: str, _marca_tiempo: int) -> ArtefactoPronostico:
     import joblib
 

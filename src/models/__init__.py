@@ -29,6 +29,26 @@ MODELOS_DISPONIBLES: dict[str, type[ModeloPredictivo]] = {
     ModeloLSTM.nombre: ModeloLSTM,
 }
 
+#: Modelos que se entrenan por defecto y que sirven la aplicación.
+#:
+#: Son los tres que ganan de forma consistente en las pruebas sobre datos reales
+#: —los tres de la familia de árboles— más el pronóstico ingenuo, que no compite
+#: sino que hace de vara de medir: sin él no hay forma de decir si los otros
+#: aportan algo sobre repetir el ciclo anterior.
+#:
+#: Los cinco restantes siguen implementados y disponibles: la comparación entre
+#: familias (lineal, serie temporal, red neuronal) es el objeto del trabajo de
+#: grado y tiene que poder reproducirse. Se entrenan con
+#: ``python -m scripts.entrenar --todos-los-modelos``. Lo que cambia aquí es el
+#: valor por defecto, para que el día a día del sistema no cargue con cinco
+#: modelos que ya se sabe que pierden y tardan minutos en entrenarse.
+MODELOS_PRODUCCION: tuple[str, ...] = (
+    ModeloBaselineEstacional.nombre,
+    ModeloRandomForest.nombre,
+    ModeloXGBoost.nombre,
+    ModeloLightGBM.nombre,
+)
+
 #: Familia a la que pertenece cada modelo. La interfaz agrupa la comparación por
 #: familias porque la pregunta interesante del trabajo de grado no es qué modelo
 #: concreto gana, sino qué **enfoque** gana.
@@ -47,6 +67,7 @@ FAMILIAS: dict[str, str] = {
 __all__ = [
     "FAMILIAS",
     "MODELOS_DISPONIBLES",
+    "MODELOS_PRODUCCION",
     "Metricas",
     "ModeloBaselineEstacional",
     "ModeloElasticNet",
