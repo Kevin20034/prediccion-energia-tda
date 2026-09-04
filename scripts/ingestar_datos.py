@@ -64,7 +64,8 @@ def main() -> None:
 
         df_xm = cliente.obtener(bloque_inicio, bloque_fin)
         df_clima = None if args.sin_clima else ClimaClient().obtener(bloque_inicio, bloque_fin)
-        df = limpiar(unir_fuentes(df_xm, df_clima))
+        # Sin imputar: en la base se guarda lo publicado, no lo estimado.
+        df = limpiar(unir_fuentes(df_xm, df_clima), imputar=False)
 
         if df.empty:
             print(f"  {bloque_inicio} -> {bloque_fin}: sin datos")

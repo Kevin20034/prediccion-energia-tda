@@ -149,6 +149,57 @@ class TestFeatures:
 
         assert objetivo == pytest.approx(precio_futuro)
 
+    def test_anula_la_demanda_publicada_a_medias(self, datos_crudos):
+        """XM publica la demanda parcial de los últimos días sin marcarla.
+
+        Es el caso peligroso: no es un nulo, es una cifra plausible pero
+        equivocada —un tercio de la real— que pasa todos los filtros y llega al
+        pronóstico como punto de partida del sistema.
+        """
+        crudo = datos_crudos.copy()
+        # La cola se elige por fecha y no por posición: el conjunto de prueba
+        # incluye a propósito una fila duplicada a mitad de serie, y las últimas
+        # posiciones no son las últimas horas.
+        corte = crudo["fecha_hora"].max() - pd.Timedelta(hours=30)
+        cola = crudo["fecha_hora"] > corte
+        # La generación se mantiene; solo la demanda llega incompleta.
+        crudo.loc[cola, "demanda_real"] = crudo.loc[cola, "generacion_total"] * 0.3
+
+        limpio = limpiar(crudo, imputar=False)
+        afectadas = limpio["fecha_hora"] > corte
+
+        assert limpio.loc[afectadas, "demanda_real"].isna().all()
+        # Las horas anteriores quedan intactas. No se exige que estén todas
+        # llenas: el conjunto de prueba trae una hora ausente a propósito, y sin
+        # imputación esa sigue vacía por otro motivo.
+        anteriores = limpio.loc[~afectadas, "demanda_real"]
+        assert anteriores.notna().mean() > 0.99
+
+    def test_el_relleno_de_bordes_usa_el_dia_anterior(self, datos_crudos):
+        """Un hueco al final se completa con la misma hora del día anterior.
+
+        Propagar hacia adelante el último valor conocido dejaría una recta plana
+        en el tramo que alimenta el pronóstico, borrando el ciclo diario justo
+        donde más importa.
+        """
+        crudo = datos_crudos.copy().sort_values("fecha_hora").reset_index(drop=True)
+        hueco = crudo.index[-10:]
+        crudo.loc[hueco, "temperatura"] = np.nan
+
+        limpio = limpiar(crudo)
+        serie = limpio.set_index("fecha_hora")["temperatura"]
+
+        for instante in limpio["fecha_hora"].iloc[-10:]:
+            esperado = serie.get(instante - pd.Timedelta(hours=24))
+            assert serie[instante] == pytest.approx(esperado)
+
+    def test_sin_imputar_conserva_los_nulos(self, datos_crudos):
+        crudo = datos_crudos.copy()
+        crudo.loc[crudo.index[-5:], "temperatura"] = np.nan
+
+        assert limpiar(crudo, imputar=False)["temperatura"].isna().any()
+        assert limpiar(crudo, imputar=True)["temperatura"].notna().all()
+
     def test_no_hay_fuga_de_informacion(self, datos_crudos):
         """`objetivo_lag_k` en el instante t debe ser el valor de t-k. Ni más ni menos."""
         limpio = limpiar(datos_crudos)

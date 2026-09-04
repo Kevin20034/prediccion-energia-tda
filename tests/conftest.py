@@ -120,6 +120,9 @@ def datos_crudos() -> pd.DataFrame:
             "demanda_real": 9_000_000 + rng.normal(0, 200_000, len(idx)),
             "generacion_hidraulica": 5_000_000 + rng.normal(0, 300_000, len(idx)),
             "generacion_termica": 3_000_000 + rng.normal(0, 200_000, len(idx)),
+            # Presente porque el pipeline la usa para detectar la demanda que XM
+            # publica a medias: sin ella, esa comprobación no puede correr.
+            "generacion_total": 9_100_000 + rng.normal(0, 250_000, len(idx)),
             "disponibilidad_real": 12_000_000 + rng.normal(0, 300_000, len(idx)),
             "temperatura": 22 + rng.normal(0, 2, len(idx)),
             "precipitacion": rng.exponential(1.5, len(idx)),

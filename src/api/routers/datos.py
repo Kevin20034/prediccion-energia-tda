@@ -301,7 +301,9 @@ def ingestar(
 
     df_xm = XMClient(incluir_tecnologias=incluir_tecnologias).obtener(fecha_inicio, fecha_fin)
     df_clima = ClimaClient().obtener(fecha_inicio, fecha_fin)
-    df = limpiar(unir_fuentes(df_xm, df_clima))
+    # `imputar=False`: se guarda lo que las fuentes publicaron. Rellenar aquí
+    # dejaría estimaciones en la base indistinguibles de las mediciones.
+    df = limpiar(unir_fuentes(df_xm, df_clima), imputar=False)
 
     if df.empty:
         raise HTTPException(

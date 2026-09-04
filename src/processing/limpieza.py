@@ -65,6 +65,7 @@ def limpiar(
     objetivo: str = COLUMNA_OBJETIVO,
     rellenar_huecos: bool = True,
     tratar_atipicos: bool = True,
+    imputar: bool = True,
     umbral_iqr: float = 3.0,
 ) -> pd.DataFrame:
     """Aplica el pipeline completo de limpieza.
@@ -75,6 +76,11 @@ def limpiar(
             defecto el precio de bolsa; con `demanda_real` se limpia el mismo
             conjunto para el otro objetivo del sistema.
         rellenar_huecos: reconstruye la rejilla horaria completa.
+        imputar: rellena los nulos restantes. Debe ir a `False` **al guardar en
+            base de datos**: lo que se almacena tiene que ser lo que la fuente
+            publicó, no una estimación con la etiqueta `fuente = "XM"` puesta
+            encima. La imputación es una decisión de modelado y su sitio es el
+            camino de entrenamiento, que la aplica sobre lo leído.
         tratar_atipicos: recorta valores extremos por IQR (*winsorizing*).
         umbral_iqr: multiplicador del rango intercuartílico. Se usa 3.0 y no el
             1.5 clásico porque en el mercado energético los picos de escasez son
@@ -113,7 +119,10 @@ def limpiar(
         log.info("Eliminando %d marcas de tiempo duplicadas", duplicados)
         df = df.drop_duplicates(subset=[COLUMNA_TIEMPO], keep="last")
 
-    # 3. Sin el valor objetivo no hay nada que aprender
+    # 3. Demanda publicada a medias por XM
+    df = _anular_demanda_preliminar(df)
+
+    # 4. Sin el valor objetivo no hay nada que aprender
     sin_objetivo = int(df[objetivo].isna().sum())
     if sin_objetivo:
         log.info("Descartando %d filas sin '%s'", sin_objetivo, objetivo)
@@ -123,16 +132,17 @@ def limpiar(
         log.warning("No quedaron filas tras descartar las que no tienen '%s'", objetivo)
         return df
 
-    # 4. Rejilla horaria completa
+    # 5. Rejilla horaria completa
     if rellenar_huecos:
         df = _reindexar_horario(df)
 
-    # 5. Atípicos
+    # 6. Atípicos
     if tratar_atipicos:
         df = _recortar_atipicos(df, umbral_iqr)
 
-    # 6. Imputación
-    df = _imputar(df)
+    # 7. Imputación
+    if imputar:
+        df = _imputar(df)
 
     df = df.reset_index(drop=True)
     log.info("Limpieza: %d filas de entrada -> %d de salida", filas_inicio, len(df))
@@ -142,6 +152,78 @@ def limpiar(
 # ---------------------------------------------------------------------------
 # Pasos internos
 # ---------------------------------------------------------------------------
+
+
+#: Columnas de demanda que XM completa con retraso y que hay que anular juntas.
+COLUMNAS_DEMANDA = (
+    "demanda_real",
+    "demanda_comercial",
+    "demanda_regulada",
+    "demanda_no_regulada",
+)
+
+#: Cociente mínimo demanda/generación por debajo del cual la demanda se
+#: considera publicada a medias.
+#:
+#: En el SIN el cociente ronda 0,98 —la diferencia son exportaciones y
+#: pérdidas— y es notablemente estable. El corte en 0,6 está muy por debajo de
+#: cualquier variación real del sistema, así que solo captura el caso que
+#: pretende capturar y no descarta días legítimamente atípicos.
+RATIO_DEMANDA_MINIMO = 0.6
+
+#: Periodo del ciclo diario y cuántos días atrás se busca para rellenar un
+#: hueco en los extremos de la serie.
+HORAS_DIA = 24
+DIAS_RELLENO_ESTACIONAL = 3
+
+
+def _anular_demanda_preliminar(df: pd.DataFrame) -> pd.DataFrame:
+    """Anula la demanda de las horas que XM aún no ha publicado completa.
+
+    XM publica la demanda por agente y la consolida a lo largo de varios días.
+    Mientras tanto devuelve la suma parcial de los agentes que ya reportaron,
+    sin marcarla de ninguna forma: en los últimos días del histórico aparece una
+    demanda nacional plana en torno a un tercio de la real.
+
+    Es un dato equivocado, no un dato faltante, y esa es la diferencia que lo
+    hace peligroso: pasa todos los filtros de nulos, sobrevive al recorte de
+    atípicos —porque no es extremo, es *bajo*— y llega hasta el pronóstico,
+    donde el modelo lo toma como el punto de partida real del sistema.
+
+    Se detecta comparándola con la generación total, que sí llega completa: si
+    la demanda no alcanza ni el 60 % de lo que el país generó esa hora, es que
+    faltan agentes por reportar. Se anula en lugar de borrar la fila para no
+    perder el precio y la hidrología de esas horas, que sí son correctos.
+    """
+    if "generacion_total" not in df.columns or "demanda_real" not in df.columns:
+        return df
+
+    generacion = pd.to_numeric(df["generacion_total"], errors="coerce")
+    demanda = pd.to_numeric(df["demanda_real"], errors="coerce")
+
+    incompleta = (
+        generacion.notna()
+        & (generacion > 0)
+        & demanda.notna()
+        & (demanda / generacion < RATIO_DEMANDA_MINIMO)
+    )
+
+    afectadas = int(incompleta.sum())
+    if not afectadas:
+        return df
+
+    log.warning(
+        "Demanda publicada a medias en %d horas (%s -> %s): se anula",
+        afectadas,
+        df.loc[incompleta, COLUMNA_TIEMPO].min(),
+        df.loc[incompleta, COLUMNA_TIEMPO].max(),
+    )
+
+    for columna in COLUMNAS_DEMANDA:
+        if columna in df.columns:
+            df.loc[incompleta, columna] = pd.NA
+
+    return df
 
 
 def _reindexar_horario(df: pd.DataFrame) -> pd.DataFrame:
@@ -190,19 +272,36 @@ def _recortar_atipicos(df: pd.DataFrame, umbral: float) -> pd.DataFrame:
 def _imputar(df: pd.DataFrame) -> pd.DataFrame:
     """Imputa nulos respetando la naturaleza temporal de los datos.
 
-    Se usa interpolación temporal + `ffill`/`bfill` en lugar de la media: en una
-    serie horaria, el vecino temporal es muchísimo mejor estimador que el
-    promedio global, que aplanaría la estacionalidad.
+    Tres pasadas, en este orden y por este motivo:
+
+    1. **Interpolación temporal solo hacia dentro** (`limit_area="inside"`).
+       Para un hueco de una o dos horas rodeado de datos buenos, la recta entre
+       los vecinos es el mejor estimador que hay. Se limita a los huecos
+       interiores para que la interpolación no se convierta en extrapolación en
+       los extremos de la serie.
+    2. **Relleno estacional**: lo que queda —los huecos del principio y del
+       final— se completa con el valor de la misma hora del día anterior,
+       repitiendo hasta tres días. En una serie con un ciclo diario tan marcado
+       como esta, "lo que pasó ayer a esta hora" es incomparablemente mejor que
+       "lo último que se supo": propagar hacia adelante el último valor conocido
+       deja una recta plana que borra el ciclo justo en el tramo que alimenta el
+       pronóstico. Es el caso real de la demanda, que XM publica completa con
+       dos días de retraso.
+    3. **`ffill`/`bfill`** como último recurso, para series sin ciclo diario o
+       con huecos más largos de tres días.
     """
     numericas = [c for c in COLUMNAS_NUMERICAS if c in df.columns]
 
     df = df.set_index(COLUMNA_TIEMPO)
-    df[numericas] = (
-        df[numericas]
-        .interpolate(method="time", limit_direction="both")
-        .ffill()
-        .bfill()
-    )
+
+    bloque = df[numericas].interpolate(method="time", limit_area="inside")
+
+    for _ in range(DIAS_RELLENO_ESTACIONAL):
+        if not bloque.isna().any().any():
+            break
+        bloque = bloque.fillna(bloque.shift(HORAS_DIA))
+
+    df[numericas] = bloque.ffill().bfill()
     df = df.reset_index()
 
     # Categóricas y metadatos
