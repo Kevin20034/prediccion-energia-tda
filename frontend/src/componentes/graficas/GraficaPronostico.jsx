@@ -15,6 +15,7 @@ import {
 
 import { decimales, marcaTemporal } from "../../formato";
 import { COLOR, EJE } from "../../tokens";
+import { movimientoReducido } from "../animacion";
 
 /**
  * La gráfica de la costura: el elemento central de toda la interfaz.
@@ -45,9 +46,16 @@ export default function GraficaPronostico({
   pronostico = [],
   unidad = "COP/kWh",
   conBrush = false,
+  animar = false,
 }) {
   const serie = useMemo(() => combinar(observado, pronostico), [observado, pronostico]);
   const dominio = useMemo(() => dominioVertical(serie), [serie]);
+
+  // La animación solo se ofrece en la vista de usuario. En el tablero técnico
+  // se cambia de horizonte y de variable constantemente, y redibujar la serie
+  // con un barrido cada vez convierte una herramienta de consulta en algo que
+  // hay que esperar.
+  const animacion = animar && !movimientoReducido();
 
   if (serie.length < 2) {
     return <div className="cargando">sin datos suficientes para trazar</div>;
@@ -156,7 +164,12 @@ export default function GraficaPronostico({
             stroke="none"
             fill={COLOR.pronostico}
             fillOpacity={0.16}
-            isAnimationActive={false}
+            /* La banda entra después de las líneas: primero se ve el trazo y
+               luego crece la incertidumbre a su alrededor, que es el orden en
+               que se lee la gráfica. */
+            isAnimationActive={animacion}
+            animationBegin={animacion ? 700 : 0}
+            animationDuration={600}
             connectNulls={false}
             legendType="none"
             activeDot={false}
@@ -185,7 +198,8 @@ export default function GraficaPronostico({
             strokeWidth={2}
             dot={false}
             connectNulls={false}
-            isAnimationActive={false}
+            isAnimationActive={animacion}
+            animationDuration={800}
             name="Observado"
           />
           <Line
@@ -196,7 +210,9 @@ export default function GraficaPronostico({
             strokeDasharray="5 4"
             dot={false}
             connectNulls={false}
-            isAnimationActive={false}
+            isAnimationActive={animacion}
+            animationBegin={animacion ? 500 : 0}
+            animationDuration={700}
             name="Pronosticado"
           />
 

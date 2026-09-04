@@ -1,0 +1,370 @@
+/* ===========================================================================
+   Vista de usuario — "Inicio"
+
+   El tablero técnico reparte la información en cuatro secciones densas y deja
+   que el usuario la componga. Esta vista hace lo contrario: una sola página que
+   se lee de arriba abajo y responde en ese orden a tres preguntas —cómo está
+   ahora, hacia dónde va, y por qué—. Cada bloque aparece al llegar a él, de
+   modo que la página se va contando en lugar de presentarse entera de golpe.
+   =========================================================================== */
+
+/* ------------------------------------------------------------- revelado */
+.revelar {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.55s var(--curva), transform 0.55s var(--curva);
+  will-change: opacity, transform;
+}
+
+.revelar--visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------------------------------------------------------------- portada */
+.portada {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radio-g);
+  border: 1px solid var(--linea);
+  background:
+    radial-gradient(120% 150% at 88% -30%, rgba(0, 147, 148, 0.09) 0%, transparent 55%),
+    var(--panel);
+  box-shadow: var(--sombra);
+  padding: 30px 32px 26px;
+  margin-bottom: 18px;
+}
+
+/* Pulso del sistema: la curva de carga viva, muy tenue, detrás del titular.
+   Es la misma figura del acceso, aquí reducida a marca de agua para que dé
+   contexto sin competir con el texto. */
+.portada__pulso {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 58%;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.portada__cuerpo {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: end;
+}
+
+.portada__titular {
+  font-size: clamp(23px, 3.1vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 10px 0 12px;
+  max-width: 20ch;
+  text-wrap: balance;
+}
+
+.portada__titular em {
+  font-style: normal;
+  color: var(--observado-hondo);
+}
+
+.portada__titular em.sube {
+  color: var(--pronostico-hondo);
+}
+
+.portada__detalle {
+  color: var(--tinta-2);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 52ch;
+}
+
+/* Cifra principal: el precio ahora mismo. */
+.portada__ahora {
+  text-align: right;
+}
+
+.portada__cifra {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(38px, 5.4vw, 60px);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: var(--observado-hondo);
+  display: block;
+}
+
+.portada__unidad {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 13px;
+  color: var(--tinta-3);
+  letter-spacing: 0;
+  margin-left: 7px;
+}
+
+.portada__pie {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11.5px;
+  color: var(--tinta-2);
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .portada {
+    padding: 24px 20px 20px;
+  }
+  .portada__cuerpo {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  .portada__ahora {
+    text-align: left;
+  }
+}
+
+/* ------------------------------------------------------- tarjetas horizonte */
+.horizontes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.horizonte {
+  position: relative;
+  text-align: left;
+  font-family: inherit;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-g);
+  padding: 16px 18px 15px;
+  box-shadow: var(--sombra);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s var(--curva), box-shadow 0.2s var(--curva),
+    border-color 0.2s var(--curva);
+}
+
+.horizonte:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-alta);
+  border-color: var(--linea-fuerte);
+}
+
+.horizonte[aria-pressed="true"] {
+  border-color: var(--observado);
+  box-shadow: 0 0 0 1px var(--observado), var(--sombra);
+}
+
+.horizonte:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.horizonte__cifra {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 25px;
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  margin: 9px 0 3px;
+  color: var(--pronostico-hondo);
+}
+
+.horizonte__pie {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Flecha de tendencia: gira según la dirección, con una transición para que el
+   cambio de horizonte se lea como un movimiento y no como un salto. */
+.flecha {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1;
+  transition: transform 0.3s var(--curva), color 0.3s var(--curva);
+}
+
+.flecha--sube {
+  color: var(--pronostico-hondo);
+  transform: rotate(0deg);
+}
+
+.flecha--baja {
+  color: var(--observado-hondo);
+  transform: rotate(180deg);
+}
+
+.flecha--estable {
+  color: var(--tinta-3);
+  transform: rotate(90deg);
+}
+
+/* ---------------------------------------------------------------- medidor */
+/* Nivel de embalses como barra con zonas. El color no es decorativo: marca en
+   qué régimen está el sistema, que es lo que explica el precio. */
+.medidor__barra {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--hundido);
+  border: 1px solid var(--linea);
+  overflow: hidden;
+  margin: 12px 0 8px;
+}
+
+.medidor__nivel {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 1s var(--curva), background 0.4s var(--curva);
+}
+
+.medidor__nivel--holgado,
+.medidor__nivel--normal {
+  background: linear-gradient(90deg, var(--observado-hondo), var(--observado));
+}
+
+.medidor__nivel--ajustado {
+  background: linear-gradient(90deg, #a86000, var(--pronostico));
+}
+
+.medidor__nivel--critico {
+  background: linear-gradient(90deg, #7c0f30, var(--nino));
+}
+
+.medidor__marcas {
+  display: flex;
+  justify-content: space-between;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+}
+
+/* ---------------------------------------------------------------- mezcla */
+/* Barras horizontales apiladas: para "de dónde viene la energía", una sola
+   barra segmentada se lee de un vistazo mucho mejor que un área apilada en el
+   tiempo, que responde a otra pregunta. */
+.mezcla-barra {
+  display: flex;
+  height: 26px;
+  border-radius: var(--radio);
+  overflow: hidden;
+  border: 1px solid var(--linea);
+  margin-bottom: 14px;
+}
+
+.mezcla-barra__parte {
+  height: 100%;
+  transition: flex-grow 0.8s var(--curva);
+  /* Filete del color del fondo entre segmentos: los separa sin introducir una
+     línea de otro color. */
+  box-shadow: inset -2px 0 0 var(--panel);
+}
+
+.mezcla-barra__parte:last-child {
+  box-shadow: none;
+}
+
+.mezcla-lista {
+  display: grid;
+  gap: 7px;
+}
+
+.mezcla-lista__fila {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.mezcla-lista__punto {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.mezcla-lista__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+/* ---------------------------------------------------------- departamentos */
+.deptos {
+  display: grid;
+  gap: 8px;
+}
+
+.depto-fila {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border-radius: var(--radio);
+  border: 1px solid transparent;
+  background: var(--hundido);
+  transition: border-color 0.15s var(--curva), transform 0.15s var(--curva);
+}
+
+.depto-fila:hover {
+  border-color: var(--linea-fuerte);
+  transform: translateX(2px);
+}
+
+.depto-fila__puesto {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  color: var(--tinta-3);
+  text-align: right;
+}
+
+.depto-fila__nombre {
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.depto-fila__nombre span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.depto-fila__valor {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--tinta-2);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- ayuda */
+/* Nota explicativa al pie de cada bloque. En la vista de usuario no se puede
+   dar por sabido qué es el precio de bolsa ni por qué importa un embalse. */
+.ayuda {
+  font-size: 12px;
+  color: var(--tinta-2);
+  line-height: 1.6;
+  margin: 12px 0 0;
+  padding-top: 11px;
+  border-top: 1px dotted var(--linea);
+}
+
+.ayuda strong {
+  color: var(--tinta);
+  font-weight: 600;
+}

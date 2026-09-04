@@ -1,29 +1,39 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as api from "./api";
 import Acceso from "./componentes/Acceso";
 import { Aviso, Cargando } from "./componentes/ui";
 import Datos from "./secciones/Datos";
+import Inicio from "./secciones/Inicio";
 import Mapa from "./secciones/Mapa";
 import Modelos from "./secciones/Modelos";
 import Pronostico from "./secciones/Pronostico";
 
+/**
+ * Secciones de la aplicación.
+ *
+ * `tecnica: true` marca las que solo tienen sentido para quien opera el
+ * sistema. Un usuario institucional entra a consultar el estado del mercado, no
+ * a comparar RMSE entre nueve modelos ni a lanzar ingestas: enseñarle esas
+ * pestañas no le da poder, le da ruido. Ve dos secciones; quien opera, cinco.
+ */
 const SECCIONES = [
-  { clave: "pronostico", etiqueta: "Pronóstico", Componente: Pronostico },
-  { clave: "mapa", etiqueta: "Mapa", Componente: Mapa },
-  { clave: "modelos", etiqueta: "Modelos", Componente: Modelos },
-  { clave: "datos", etiqueta: "Datos", Componente: Datos },
+  { clave: "inicio", etiqueta: "Inicio", Componente: Inicio, tecnica: false },
+  { clave: "mapa", etiqueta: "Mapa", Componente: Mapa, tecnica: false },
+  { clave: "pronostico", etiqueta: "Pronóstico", Componente: Pronostico, tecnica: true },
+  { clave: "modelos", etiqueta: "Modelos", Componente: Modelos, tecnica: true },
+  { clave: "datos", etiqueta: "Datos", Componente: Datos, tecnica: true },
 ];
 
 /** Por debajo de este nivel de embalse, la regla superior pasa a ámbar. */
 const EMBALSE_BAJO = 45;
 
-const CLAVES = SECCIONES.map((s) => s.clave);
+const INICIAL = "inicio";
 
-/** Sección indicada en la URL, o la primera si no hay ninguna válida. */
-function seccionDeLaUrl() {
+/** Sección indicada en la URL, si el rol tiene acceso a ella. */
+function seccionDeLaUrl(permitidas) {
   const clave = window.location.hash.replace(/^#/, "");
-  return CLAVES.includes(clave) ? clave : "pronostico";
+  return permitidas.includes(clave) ? clave : INICIAL;
 }
 
 export default function App() {
@@ -32,11 +42,17 @@ export default function App() {
   // La sección vive en el hash de la URL: así el tablero es enlazable, recargar
   // no devuelve al inicio y el botón "atrás" del navegador hace lo que se
   // espera en vez de sacar de la aplicación.
-  const [seccion, setSeccion] = useState(seccionDeLaUrl);
+  const [seccion, setSeccion] = useState(INICIAL);
   const [aviso, setAviso] = useState(null);
   const [nivelEmbalse, setNivelEmbalse] = useState(null);
 
   const puedeOperar = usuario?.rol === "ADMINISTRADOR" || usuario?.rol === "ANALISTA";
+
+  const visibles = useMemo(
+    () => SECCIONES.filter((s) => !s.tecnica || puedeOperar),
+    [puedeOperar]
+  );
+  const claves = useMemo(() => visibles.map((s) => s.clave), [visibles]);
 
   const alFallar = useCallback((error) => {
     if (error instanceof api.SesionExpirada) {
@@ -64,6 +80,13 @@ export default function App() {
       .finally(() => setArrancando(false));
   }, [cargarSesion]);
 
+  // La sección del hash solo puede resolverse cuando ya se sabe el rol: hasta
+  // entonces no se sabe qué secciones existen para este usuario.
+  useEffect(() => {
+    if (!usuario) return;
+    setSeccion(seccionDeLaUrl(claves));
+  }, [usuario, claves]);
+
   // El nivel de los embalses alimenta la regla bajo la barra. Se pide una sola
   // vez por sesión: es un estado diario, no cambia mientras se navega.
   //
@@ -84,29 +107,32 @@ export default function App() {
 
   // Navegación hacia atrás y adelante del navegador.
   useEffect(() => {
-    const alCambiar = () => setSeccion(seccionDeLaUrl());
+    const alCambiar = () => setSeccion(seccionDeLaUrl(claves));
     window.addEventListener("hashchange", alCambiar);
     return () => window.removeEventListener("hashchange", alCambiar);
-  }, []);
+  }, [claves]);
 
-  function irA(clave) {
+  const irA = useCallback((clave) => {
     setSeccion(clave);
     setAviso(null);
     window.location.hash = clave;
-  }
+    // Al cambiar de sección se vuelve arriba. Sin esto, saltar desde el pie de
+    // una sección larga deja la siguiente empezada por la mitad.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   function salir() {
     api.setToken(null);
     setUsuario(null);
     setAviso(null);
     setNivelEmbalse(null);
-    irA("pronostico");
+    irA(INICIAL);
   }
 
   if (arrancando) return <Cargando texto="conectando" />;
   if (!usuario) return <Acceso alEntrar={cargarSesion} />;
 
-  const Actual = SECCIONES.find((s) => s.clave === seccion)?.Componente ?? Pronostico;
+  const Actual = visibles.find((s) => s.clave === seccion)?.Componente ?? Inicio;
   const bajo = nivelEmbalse != null && nivelEmbalse < EMBALSE_BAJO;
 
   return (
@@ -120,7 +146,7 @@ export default function App() {
           </span>
 
           <nav className="pestanas" aria-label="Secciones">
-            {SECCIONES.map((s) => (
+            {visibles.map((s) => (
               <button
                 key={s.clave}
                 className="pestana"
@@ -176,6 +202,7 @@ export default function App() {
           puedeOperar={puedeOperar}
           alFallar={alFallar}
           alAvisar={setAviso}
+          alIrAlMapa={() => irA("mapa")}
         />
       </main>
     </>

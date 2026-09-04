@@ -5,6 +5,7 @@ import App from "./App";
 import "./estilos/base.css";
 import "./estilos/acceso.css";
 import "./estilos/app.css";
+import "./estilos/inicio.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

@@ -87,6 +87,12 @@ export async function entrar(email, password) {
 
 export const perfil = () => pedir("/auth/yo");
 
+// --- Vista de usuario ------------------------------------------------------
+
+/** Estado del sistema ya interpretado: titular, cifras, mezcla y territorio. */
+export const panorama = (objetivo = "precio_bolsa") =>
+  pedir(`/panorama${query({ objetivo })}`);
+
 // --- Datos históricos ------------------------------------------------------
 
 export const resumenDatos = () => pedir("/datos/resumen");

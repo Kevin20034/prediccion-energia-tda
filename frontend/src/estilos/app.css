@@ -272,6 +272,31 @@
   box-shadow: var(--sombra);
   position: relative;
   overflow: hidden;
+  transition: transform 0.2s var(--curva), box-shadow 0.2s var(--curva);
+}
+
+.cifra:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-alta);
+}
+
+/* Entrada escalonada de la fila de cifras. Cinco reglas y no un bucle porque
+   nunca hay más de cinco: por encima, el escalonado deja de leerse como
+   composición y empieza a parecer que la página va lenta. */
+.rejilla--cifras > * {
+  animation: subir 0.45s var(--curva) both;
+}
+
+.rejilla--cifras > *:nth-child(2) { animation-delay: 60ms; }
+.rejilla--cifras > *:nth-child(3) { animation-delay: 120ms; }
+.rejilla--cifras > *:nth-child(4) { animation-delay: 180ms; }
+.rejilla--cifras > *:nth-child(5) { animation-delay: 240ms; }
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 
 /* Filete izquierdo: dice de un vistazo si la cifra es medida o inferida. */
