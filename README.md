@@ -12,6 +12,34 @@ Tecnológico de Antioquia»*.
 
 ---
 
+## Arranque rápido (Windows)
+
+Recién clonado el repositorio, dos pasos:
+
+```
+instalar.cmd      (una sola vez: crea el entorno e instala todo)
+iniciar.cmd       (arranca la API y la interfaz, y abre el navegador)
+```
+
+Entre uno y otro hay que **pegar las credenciales de la base de datos** en el
+archivo `.env` que crea el instalador. No vienen en el repositorio a propósito:
+una clave subida a git queda en el historial para siempre, así que se piden por
+un canal privado a quien ya tenga el proyecto funcionando.
+
+Requisitos previos: [Python 3.11+](https://www.python.org/downloads/) —marcando
+*Add Python to PATH* al instalarlo— y [Node.js](https://nodejs.org).
+
+En Linux o macOS no hay scripts equivalentes; se siguen los pasos de
+[Instalación](#instalación) y [Puesta en marcha](#puesta-en-marcha).
+
+> Los modelos entrenados no viajan en el repositorio: pesan unos 16 MB cada uno
+> y se regeneran. Sin ellos el mapa y los datos funcionan, pero la sección de
+> pronóstico dirá *«sin modelo entrenado»* hasta que se ejecute
+> `python -m scripts.entrenar --objetivo precio_bolsa demanda_real --todos-los-horizontes`,
+> que tarda unos minutos.
+
+---
+
 ## Índice
 
 - [Qué hace](#qué-hace)
