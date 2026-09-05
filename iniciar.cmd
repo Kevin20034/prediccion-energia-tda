@@ -45,23 +45,40 @@ if not exist "frontend\node_modules" (
     goto :fin
 )
 
+REM --- Puertos libres --------------------------------------------------------
+REM Si un arranque anterior quedo vivo, el segundo servidor no puede abrir su
+REM puerto y la ventana se cierra sola. Avisar aqui evita perseguir el sintoma.
+for %%p in (8000 5173) do (
+    netstat -ano | findstr /r /c:"LISTENING" | findstr /c:":%%p " >nul 2>&1
+    if not errorlevel 1 (
+        echo  [ERROR] El puerto %%p ya esta ocupado.
+        echo          Cierra las ventanas de un arranque anterior y reintenta.
+        goto :fin
+    )
+)
+
 REM --- Arranque --------------------------------------------------------------
+REM Se fija 127.0.0.1 en los dos servidores. Sin indicarlo, Vite se ata solo a
+REM la direccion IPv6 (::1); entonces la pagina abre o no segun a que resuelva
+REM "localhost" en cada equipo, que es una diferencia invisible y muy molesta de
+REM diagnosticar. --strictPort hace que falle a la vista en lugar de saltar en
+REM silencio a otro puerto y dejar el navegador apuntando al equivocado.
 echo  Arrancando la API en el puerto 8000...
 start "API - Pronostico SIN" cmd /k ".venv\Scripts\python.exe -m uvicorn src.api.main:app --reload --host 127.0.0.1 --port 8000"
 
 echo  Arrancando la interfaz en el puerto 5173...
-start "Interfaz - Pronostico SIN" cmd /k "cd frontend && npm run dev"
+start "Interfaz - Pronostico SIN" cmd /k "cd frontend && npm run dev -- --host 127.0.0.1 --port 5173 --strictPort"
 
 REM La interfaz tarda unos segundos en estar lista; abrir el navegador antes
 REM mostraria un error de conexion y daria la impresion de que algo fallo.
 echo  Esperando a que la interfaz este lista...
 timeout /t 8 /nobreak >nul
-start "" http://localhost:5173
+start "" http://127.0.0.1:5173
 
 echo.
 echo  ============================================================
-echo   Interfaz:       http://localhost:5173
-echo   API (docs):     http://localhost:8000/docs
+echo   Interfaz:       http://127.0.0.1:5173
+echo   API (docs):     http://127.0.0.1:8000/docs
 echo.
 echo   Cuentas de prueba:
 echo     admin@tda.edu.co      Admin123*       (todo)
@@ -73,5 +90,6 @@ echo  ============================================================
 
 :fin
 echo.
-pause
+REM Ver la nota equivalente en instalar.cmd.
+if not "%SIN_PAUSA%"=="1" pause
 endlocal

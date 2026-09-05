@@ -103,5 +103,8 @@ if exist ".env" (
 
 :fin
 echo.
-pause
+REM La pausa existe para quien llega por doble clic: sin ella la ventana se
+REM cierra y no se llega a leer si algo fallo. Con SIN_PAUSA=1 se omite, para
+REM poder encadenar este script desde otro o desde una comprobacion automatica.
+if not "%SIN_PAUSA%"=="1" pause
 endlocal
