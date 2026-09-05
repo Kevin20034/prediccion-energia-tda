@@ -20,7 +20,7 @@ con su propio modelo en vez de estirar el de 24 h.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 import pandas as pd
 from fastapi import APIRouter, HTTPException, Query, status
@@ -65,6 +65,44 @@ def _etiqueta(horizonte: int) -> str:
         if horas == horizonte:
             return etiqueta
     return f"{horizonte}h"
+
+
+def esta_vigente(
+    prediccion: Prediccion,
+    artefacto: ArtefactoPronostico,
+    ultimo_dato: datetime | None,
+) -> bool:
+    """¿Este pronóstico guardado sigue siendo el bueno?
+
+    Dos formas de quedarse obsoleto, y hay que comprobar las dos:
+
+    1. **Los datos lo alcanzaron.** Si ya se conoce lo que realmente pasó en esa
+       hora, eso no es pronóstico, es historial: su sitio es la evaluación de
+       error, no la gráfica de lo que viene.
+    2. **El modelo cambió.** Tras reentrenar puede ganar otro modelo, y las
+       predicciones guardadas siguen siendo del anterior. Como sus fechas
+       objetivo todavía están en el futuro, la primera comprobación las da por
+       buenas y el sistema sirve indefinidamente el pronóstico de un modelo que
+       ya fue sustituido —diciendo además el nombre del modelo viejo—. Se
+       compara la fecha de entrenamiento del artefacto con la de emisión de la
+       predicción.
+    """
+    if ultimo_dato is not None and prediccion.fecha_objetivo <= ultimo_dato:
+        return False
+
+    emitida = prediccion.generado_en
+    if emitida is None:
+        return False
+
+    # Las marcas de la base llegan con zona horaria; la del artefacto se crea en
+    # UTC. Si alguna viniera ingenua, compararlas lanzaría TypeError.
+    entrenado = artefacto.entrenado_en
+    if emitida.tzinfo is None:
+        emitida = emitida.replace(tzinfo=UTC)
+    if entrenado.tzinfo is None:
+        entrenado = entrenado.replace(tzinfo=UTC)
+
+    return emitida >= entrenado
 
 
 @router.get(
@@ -138,9 +176,9 @@ def pronostico(
 ) -> RespuestaPronostico:
     """Lo que la gráfica principal necesita, resuelto de una vez.
 
-    Reutiliza el pronóstico guardado si sigue siendo posterior al último dato
-    observado. Si el histórico ya alcanzó a las predicciones, esas predicciones
-    dejaron de ser pronóstico —son historial— y se recalculan.
+    Reutiliza el pronóstico guardado solo si sigue vigente: posterior al último
+    dato observado **y** emitido por el modelo que hay entrenado ahora mismo
+    (ver `esta_vigente`). En cualquier otro caso se recalcula.
     """
     artefacto = _artefacto(objetivo, horizonte)
 
@@ -152,7 +190,7 @@ def pronostico(
 
     guardadas: list[Prediccion] = []
     if not recalcular and ultimo is not None:
-        guardadas = list(
+        candidatas = list(
             db.execute(
                 select(Prediccion)
                 .where(
@@ -165,6 +203,10 @@ def pronostico(
             .scalars()
             .all()
         )
+        # O valen todas o no vale ninguna: mezclar puntos de dos modelos en la
+        # misma curva daría un salto en la costura entre ambos tramos.
+        if candidatas and all(esta_vigente(p, artefacto, ultimo) for p in candidatas):
+            guardadas = candidatas
 
     if not guardadas:
         guardadas = _calcular(db, artefacto, usuario_id=usuario.id)

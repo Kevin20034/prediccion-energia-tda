@@ -19,6 +19,7 @@ from fastapi import APIRouter, Query
 from sqlalchemy import func, select
 
 from src.api.deps import SesionBD, UsuarioActual
+from src.api.routers.predicciones import esta_vigente
 from src.api.schemas.panorama import (
     DepartamentoResumen,
     Embalses,
@@ -254,14 +255,15 @@ def _pronosticos(db: SesionBD, objetivo: str, instante: datetime) -> list[Resume
         .limit(1)
     ).scalar_one_or_none()
 
-    entrenados = {
-        (a.objetivo, a.horizonte) for a in artefactos_disponibles()
+    artefactos = {
+        (a.objetivo, a.horizonte): a for a in artefactos_disponibles()
     }
 
     resumenes: list[ResumenPronostico] = []
 
     for etiqueta, horas in HORIZONTES.items():
-        hay_modelo = (objetivo, horas) in entrenados
+        artefacto = artefactos.get((objetivo, horas))
+        hay_modelo = artefacto is not None
         ultimo = db.execute(
             select(Prediccion)
             .where(
@@ -272,6 +274,15 @@ def _pronosticos(db: SesionBD, objetivo: str, instante: datetime) -> list[Resume
             .order_by(Prediccion.fecha_objetivo.desc())
             .limit(1)
         ).scalar_one_or_none()
+
+        # Un pronóstico emitido por un modelo que ya fue sustituido no se
+        # muestra: la tarjeta pasa a "pulsa para calcularlo" y al hacerlo se
+        # regenera con el modelo vigente. Enseñarlo sería anunciar como actual
+        # el resultado de un modelo retirado, con su nombre y todo.
+        if ultimo is not None and artefacto is not None and not esta_vigente(
+            ultimo, artefacto, instante
+        ):
+            ultimo = None
 
         if ultimo is None:
             resumenes.append(
