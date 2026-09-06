@@ -306,6 +306,19 @@ Las dos anteriores más tres:
 | **Modelos** | Tabla comparativa, gráfica de RMSE con la línea del pronóstico ingenuo, ganador por horizonte e importancia de variables por permutación. |
 | **Datos** | Explorador de series con hasta seis variables, cuatro resoluciones, y el contraste con los escenarios de la UPME. |
 
+### El logo institucional
+
+`frontend/public/tdea.svg` es el logo **oficial y sin retocar**, descargado del
+sitio del Tecnológico de Antioquia. Aparece en tres sitios: el acceso, la barra
+superior y la cabecera del informe impreso.
+
+No se le cambia ningún color. Como es verde oscuro sobre transparente y el
+tablero es oscuro, en pantalla va sobre una placa clara: puesto directamente, el
+nombre «TdeA» quedaría con un contraste cercano a 2:1. Lo habitual sería usar la
+versión blanca del logo, pero la institución no publica ninguna, así que se le
+pone debajo la superficie clara para la que fue diseñado. En el informe impreso
+la placa desaparece: allí el fondo ya es blanco.
+
 ### Lenguaje visual
 
 Codifica una sola idea en todas partes: **turquesa es lo medido, ámbar es lo

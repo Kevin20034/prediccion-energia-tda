@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { entrar } from "../api";
 import LienzoEmbalse from "./LienzoEmbalse";
+import LogoTdeA from "./LogoTdeA";
 
 /** Cuentas de demostración creadas por `python -m scripts.seed`. */
 const CUENTAS = [
@@ -51,8 +52,11 @@ export default function Acceso({ alEntrar }) {
       <div className="acceso__reticula" aria-hidden="true" />
 
       <div className="acceso__caja emerge">
-        <div className="rotulo emerge" style={escalonado(1)}>
-          Tecnológico de Antioquia
+        {/* El logo sustituye al rótulo de texto que había aquí: decía lo mismo
+            y el acceso es la pantalla donde la identidad tiene que hablar
+            primero. */}
+        <div className="emerge" style={escalonado(1)}>
+          <LogoTdeA tamano="tarjeta" />
         </div>
         <h1 className="acceso__marca emerge" style={escalonado(2)}>
           Sistema <em>Interconectado</em> Nacional

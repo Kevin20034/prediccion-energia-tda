@@ -78,6 +78,28 @@
     transform: none !important;
   }
 
+  /* Cabecera del documento impreso, con el logo institucional a todo color:
+     sobre blanco no hace falta la placa que lo hace legible en el tablero. */
+  .cabecera-informe {
+    display: flex !important;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #00652e;
+  }
+
+  .cabecera-informe strong {
+    font-size: 15px;
+    display: block;
+  }
+
+  .logo-tdea--placa {
+    background: none;
+    box-shadow: none;
+    padding: 0;
+  }
+
   /* Marca de agua de procedencia: un informe suelto tiene que decir de dónde
      salió y cuándo, o dentro de un mes nadie sabrá qué está mirando. */
   .pie-informe {
@@ -94,7 +116,8 @@
   }
 }
 
-/* Fuera de la impresión, el pie del informe no se ve. */
-.pie-informe {
+/* Fuera de la impresión, la cabecera y el pie del informe no se ven. */
+.pie-informe,
+.cabecera-informe {
   display: none;
 }

@@ -4,6 +4,7 @@ import * as api from "../api";
 import { Contador, Revelar } from "../componentes/animacion";
 import GraficaPronostico from "../componentes/graficas/GraficaPronostico";
 import Herramientas from "../componentes/graficas/Herramientas";
+import LogoTdeA from "../componentes/LogoTdeA";
 import PulsoCarga from "../componentes/PulsoCarga";
 import { Cargando, Panel, Vacio } from "../componentes/ui";
 import { decimales, energia, fechaHora } from "../formato";
@@ -145,6 +146,17 @@ export default function Inicio({ alFallar, alAvisar, alIrAlMapa }) {
 
   return (
     <div className="seccion">
+      {/* Solo aparece al imprimir: en papel el informe sale suelto, sin barra
+          de navegación, así que necesita cabecera propia que diga de quién es.
+          Aquí el fondo ya es blanco y el logo va a todo color, sin placa. */}
+      <header className="cabecera-informe">
+        <LogoTdeA tamano="informe" conPlaca={false} />
+        <div>
+          <div className="rotulo">Sistema Interconectado Nacional</div>
+          <strong>Informe de pronóstico energético</strong>
+        </div>
+      </header>
+
       <Portada
         panorama={panorama}
         indicador={indicador}
