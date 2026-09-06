@@ -7,7 +7,7 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(16, 27, 22, 0.88);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--linea);
 }
@@ -43,8 +43,8 @@
 }
 
 @keyframes latido {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 147, 148, 0.4); }
-  50% { box-shadow: 0 0 0 5px rgba(0, 147, 148, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(140, 198, 63, 0.45); }
+  50% { box-shadow: 0 0 0 6px rgba(140, 198, 63, 0); }
 }
 
 .barra__sitio {
@@ -78,13 +78,13 @@
 
 .nivel__relleno {
   height: 100%;
-  background: linear-gradient(90deg, var(--observado-hondo), var(--observado));
+  background: linear-gradient(90deg, var(--observado-claro), var(--observado));
   transform-origin: left;
   animation: llenar 1.1s var(--curva) both;
 }
 
 .nivel__relleno--bajo {
-  background: linear-gradient(90deg, var(--pronostico-hondo), var(--pronostico));
+  background: linear-gradient(90deg, var(--pronostico-claro), var(--pronostico));
 }
 
 @keyframes llenar {
@@ -329,11 +329,11 @@
 }
 
 .cifra--medida .cifra__valor {
-  color: var(--observado-hondo);
+  color: var(--observado-claro);
 }
 
 .cifra--inferida .cifra__valor {
-  color: var(--pronostico-hondo);
+  color: var(--pronostico-claro);
 }
 
 .cifra__unidad {
@@ -360,11 +360,11 @@
 }
 
 .delta--sube {
-  color: var(--pronostico-hondo);
+  color: var(--pronostico-claro);
 }
 
 .delta--baja {
-  color: var(--observado-hondo);
+  color: var(--observado-claro);
 }
 
 /* ------------------------------------------------------ costura (firma) */
@@ -388,8 +388,8 @@
     -45deg,
     transparent,
     transparent 5px,
-    rgba(204, 106, 0, 0.05) 5px,
-    rgba(204, 106, 0, 0.05) 6px
+    rgba(240, 166, 64, 0.07) 5px,
+    rgba(240, 166, 64, 0.07) 6px
   );
 }
 
@@ -426,12 +426,12 @@
 }
 
 .costura__cifra--medida {
-  color: var(--observado-hondo);
+  color: var(--observado-claro);
 }
 
 .costura__cifra--inferida {
-  color: var(--pronostico-hondo);
-  border-bottom: 2px dashed rgba(204, 106, 0, 0.45);
+  color: var(--pronostico-claro);
+  border-bottom: 2px dashed rgba(240, 166, 64, 0.5);
   display: inline-block;
   padding-bottom: 3px;
 }
@@ -454,6 +454,35 @@
 /* ---------------------------------------------------------------- gráficas */
 .grafica {
   padding: 12px 8px 4px;
+}
+
+/* Barra de herramientas: forma de la gráfica a la izquierda, descargas a la
+   derecha. Se atenúa hasta que el puntero entra en el panel, para que no
+   compita con los datos mientras se leen. */
+.grafica__acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 12px 10px;
+  opacity: 0.55;
+  transition: opacity 0.2s var(--curva);
+}
+
+.panel:hover .grafica__acciones,
+.grafica__acciones:focus-within {
+  opacity: 1;
+}
+
+.grafica__acciones .boton--fantasma {
+  border: 1px solid var(--linea);
+  background: var(--hundido);
+}
+
+.grafica__acciones .boton--fantasma:hover:not(:disabled) {
+  border-color: var(--observado);
+  color: var(--observado-claro);
+  background: var(--observado-velo);
 }
 
 .leyenda {
@@ -612,7 +641,7 @@
 }
 
 .tabla__fila--gana:hover {
-  background: #d0e9e9;
+  background: rgba(32, 192, 147, 0.2);
 }
 
 .tabla__fila--referencia td {
@@ -680,26 +709,26 @@
 
 .insignia--medida {
   background: var(--observado-velo);
-  color: var(--observado-hondo);
-  border-color: rgba(0, 147, 148, 0.28);
+  color: var(--observado-claro);
+  border-color: rgba(32, 192, 147, 0.38);
 }
 
 .insignia--estimada {
   background: var(--pronostico-velo);
-  color: var(--pronostico-hondo);
-  border-color: rgba(204, 106, 0, 0.28);
+  color: var(--pronostico-claro);
+  border-color: rgba(240, 166, 64, 0.38);
 }
 
 .insignia--nino {
   background: var(--nino-velo);
   color: var(--nino);
-  border-color: rgba(168, 18, 63, 0.25);
+  border-color: rgba(244, 119, 106, 0.35);
 }
 
 .insignia--nina {
   background: var(--nina-velo);
   color: var(--nina);
-  border-color: rgba(29, 78, 216, 0.25);
+  border-color: rgba(90, 168, 255, 0.35);
 }
 
 /* ---------------------------------------------------------------- lecturas */
@@ -957,13 +986,13 @@
   padding: 13px 16px;
   font-size: 13px;
   line-height: 1.55;
-  color: var(--observado-hondo);
+  color: var(--observado-claro);
 }
 
 .veredicto--sin-ventaja {
   border-color: var(--pronostico);
   background: var(--pronostico-velo);
-  color: var(--pronostico-hondo);
+  color: var(--pronostico-claro);
 }
 
 .veredicto strong {

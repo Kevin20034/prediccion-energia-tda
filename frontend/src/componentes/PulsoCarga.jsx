@@ -81,13 +81,13 @@ export default function PulsoCarga({ serie }) {
       ctx.lineTo(0, abajo);
       ctx.closePath();
       const relleno = ctx.createLinearGradient(0, arriba, 0, abajo);
-      relleno.addColorStop(0, "rgba(0, 147, 148, 0.10)");
-      relleno.addColorStop(1, "rgba(0, 147, 148, 0)");
+      relleno.addColorStop(0, "rgba(32, 192, 147, 0.16)");
+      relleno.addColorStop(1, "rgba(32, 192, 147, 0)");
       ctx.fillStyle = relleno;
       ctx.fill();
 
       trazar(ancho);
-      ctx.strokeStyle = "rgba(0, 147, 148, 0.28)";
+      ctx.strokeStyle = "rgba(32, 192, 147, 0.32)";
       ctx.lineWidth = 1.4;
       ctx.stroke();
 
@@ -98,9 +98,9 @@ export default function PulsoCarga({ serie }) {
       const largo = ancho * 0.16;
       const centro = avance * (ancho + largo) - largo / 2;
       const degradado = ctx.createLinearGradient(centro - largo, 0, centro + largo, 0);
-      degradado.addColorStop(0, "rgba(0, 147, 148, 0)");
+      degradado.addColorStop(0, "rgba(32, 192, 147, 0)");
       degradado.addColorStop(0.5, COLOR.observado);
-      degradado.addColorStop(1, "rgba(0, 147, 148, 0)");
+      degradado.addColorStop(1, "rgba(32, 192, 147, 0)");
 
       trazar(ancho);
       ctx.strokeStyle = degradado;

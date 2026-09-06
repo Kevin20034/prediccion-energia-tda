@@ -28,8 +28,8 @@ const CURVA_CARGA = [
   0.79, 0.77, 0.75, 0.74, 0.75, 0.79, 0.9, 1.0, 0.95, 0.83, 0.68, 0.53,
 ];
 
-const AGUA = "rgba(0, 147, 148, ";
-const CRESTA = "rgba(96, 214, 210, ";
+const AGUA = "rgba(0, 132, 61, ";
+const CRESTA = "rgba(140, 198, 63, ";
 
 export default function LienzoEmbalse() {
   const referencia = useRef(null);
@@ -152,7 +152,7 @@ export default function LienzoEmbalse() {
       ctx.fill();
       ctx.beginPath();
       ctx.arc(hasta, y, 3.2, 0, Math.PI * 2);
-      ctx.fillStyle = "#8ff0eb";
+      ctx.fillStyle = "#c2ea86";
       ctx.fill();
     }
 

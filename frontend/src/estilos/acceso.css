@@ -1,13 +1,23 @@
 /* ===========================================================================
-   Acceso — "profundidad"
+   Acceso — la puerta de la casa
 
-   Es la única pantalla oscura de toda la aplicación, y lo es a propósito: el
-   acceso mira hacia dentro del embalse, y el tablero mira la carta técnica a
-   plena luz. Al entrar, el fondo oscuro se retira hacia arriba —se emerge— y
-   deja el papel del tablero. Esa transición es la que hilvana las dos mitades.
+   Aquí es donde el color de la marca manda más que en ninguna otra pantalla:
+   es lo primero que se ve y lo único que tiene que decir de quién es esto. El
+   fondo lleva la profundidad verde del Tecnológico de Antioquia y el filo de la
+   tarjeta hace el degradado lima -> verde institucional del logo.
+
+   El tablero que hay detrás es más oscuro y más sobrio a propósito: allí el
+   color lo tienen que poner los datos, no la identidad.
    =========================================================================== */
 
 .acceso {
+  /* Solo se usan aquí, así que viven aquí y no en la hoja de tokens. */
+  --hondo-1: #04140b;
+  --hondo-2: #0a2415;
+  --hondo-3: #12452a;
+  --tinta-clara: #eaf4ec;
+  --tinta-clara-2: #9dbca9;
+
   position: relative;
   min-height: 100%;
   display: grid;
@@ -15,7 +25,8 @@
   padding: 28px 20px;
   overflow: hidden;
   background:
-    radial-gradient(130% 70% at 50% 118%, rgba(20, 56, 74, 0.85) 0%, transparent 60%),
+    radial-gradient(130% 70% at 50% 118%, rgba(18, 69, 42, 0.9) 0%, transparent 60%),
+    radial-gradient(90% 60% at 88% 8%, rgba(140, 198, 63, 0.1) 0%, transparent 55%),
     linear-gradient(178deg, var(--hondo-1) 0%, var(--hondo-2) 100%);
   color: var(--tinta-clara);
 }
@@ -50,9 +61,9 @@
   /* Bastante más clara que el fondo: con menos diferencia, la tarjeta se
      disolvía en el agua y dejaba de leerse como una superficie sobre la que
      escribir. */
-  background: rgba(19, 44, 58, 0.9);
+  background: rgba(11, 33, 21, 0.9);
   backdrop-filter: blur(16px) saturate(125%);
-  border: 1px solid rgba(147, 174, 189, 0.26);
+  border: 1px solid rgba(157, 188, 169, 0.24);
   border-radius: var(--radio-g);
   padding: 34px 32px 26px;
   box-shadow: 0 26px 64px rgba(0, 0, 0, 0.5);
@@ -66,7 +77,7 @@
   inset: -1px -1px auto;
   height: 2px;
   border-radius: var(--radio-g) var(--radio-g) 0 0;
-  background: linear-gradient(90deg, var(--observado) 0%, var(--pronostico) 100%);
+  background: linear-gradient(90deg, var(--tdea-lima) 0%, var(--tdea-verde) 100%);
 }
 
 .acceso__marca {
@@ -80,7 +91,7 @@
 
 .acceso__marca em {
   font-style: normal;
-  color: var(--observado);
+  color: var(--tdea-lima);
 }
 
 .acceso__sub {
@@ -92,7 +103,7 @@
 }
 
 .acceso .rotulo {
-  color: rgba(147, 174, 189, 0.8);
+  color: rgba(157, 188, 169, 0.85);
 }
 
 .acceso__campo {
@@ -106,19 +117,19 @@
 }
 
 .acceso input {
-  background: rgba(6, 17, 24, 0.6);
-  border-color: rgba(147, 174, 189, 0.22);
+  background: rgba(4, 20, 11, 0.6);
+  border-color: rgba(157, 188, 169, 0.22);
   color: var(--tinta-clara);
 }
 
 .acceso input:hover {
-  border-color: rgba(147, 174, 189, 0.4);
+  border-color: rgba(157, 188, 169, 0.4);
 }
 
 .acceso input:focus {
-  background: rgba(6, 17, 24, 0.85);
-  border-color: var(--observado);
-  box-shadow: 0 0 0 3px rgba(0, 147, 148, 0.22);
+  background: rgba(4, 20, 11, 0.85);
+  border-color: var(--tdea-lima);
+  box-shadow: 0 0 0 3px rgba(140, 198, 63, 0.2);
 }
 
 .acceso .boton--solido {
@@ -129,7 +140,7 @@
 }
 
 .acceso .aviso--error {
-  background: rgba(168, 18, 63, 0.16);
+  background: rgba(244, 119, 106, 0.16);
   border-color: var(--nino);
   color: #ffc9d6;
   margin-bottom: 14px;
@@ -138,7 +149,7 @@
 .acceso__pistas {
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid rgba(147, 174, 189, 0.15);
+  border-top: 1px solid rgba(157, 188, 169, 0.15);
 }
 
 .acceso__pista {
@@ -161,8 +172,8 @@
 }
 
 .acceso__pista:hover {
-  background: rgba(0, 147, 148, 0.13);
-  border-color: rgba(0, 147, 148, 0.32);
+  background: rgba(140, 198, 63, 0.13);
+  border-color: rgba(140, 198, 63, 0.32);
   color: #fff;
 }
 

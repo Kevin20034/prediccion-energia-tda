@@ -1,0 +1,100 @@
+/* ===========================================================================
+   Hoja de impresión — "Guardar como PDF"
+
+   Lo que sale por aquí tiene que ser un documento, no una captura del tablero.
+   Un tablero oscuro impreso gasta el tóner de media oficina y se lee peor en
+   papel, así que se invierte a tinta sobre blanco; la navegación, los botones y
+   los controles desaparecen porque en un papel no se puede pulsar nada.
+   =========================================================================== */
+
+@media print {
+  /* Fondo blanco y tinta negra. `print-color-adjust: exact` solo se deja en las
+     gráficas: ahí el color ES el dato y perderlo haría el informe inservible. */
+  :root {
+    --papel: #ffffff;
+    --panel: #ffffff;
+    --panel-alto: #ffffff;
+    --hundido: #f6f8f7;
+    --linea: #d5dedb;
+    --linea-fuerte: #9fb0aa;
+    --tinta: #10201a;
+    --tinta-2: #3d5049;
+    --tinta-3: #63756e;
+  }
+
+  body {
+    background: #fff;
+    color: #10201a;
+  }
+
+  /* Fuera todo lo que no se puede usar en papel. */
+  .barra,
+  .nivel,
+  .conmutador,
+  .boton,
+  .pildora,
+  .aviso__cerrar,
+  .recharts-brush,
+  .grafica__acciones {
+    display: none !important;
+  }
+
+  .lienzo {
+    max-width: none;
+    padding: 0;
+  }
+
+  .panel,
+  .cifra,
+  .portada,
+  .horizonte {
+    box-shadow: none !important;
+    border: 1px solid #d5dedb !important;
+    break-inside: avoid;
+  }
+
+  /* Las gráficas conservan su color: ahí el color es el dato. */
+  .grafica,
+  .mapa,
+  .recharts-wrapper {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    break-inside: avoid;
+  }
+
+  /* Sin animaciones: en papel solo se imprimiría el fotograma en que estaban. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* El revelado por desplazamiento deja bloques en `opacity: 0`. Al imprimir no
+     hay desplazamiento que los active, así que se fuerzan visibles o el informe
+     saldría con páginas en blanco. */
+  .revelar {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  /* Marca de agua de procedencia: un informe suelto tiene que decir de dónde
+     salió y cuándo, o dentro de un mes nadie sabrá qué está mirando. */
+  .pie-informe {
+    display: block !important;
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid #d5dedb;
+    font-size: 10px;
+    color: #63756e;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}
+
+/* Fuera de la impresión, el pie del informe no se ve. */
+.pie-informe {
+  display: none;
+}

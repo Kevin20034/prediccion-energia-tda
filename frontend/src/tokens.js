@@ -9,75 +9,86 @@
  */
 
 export const COLOR = {
-  papel: "#edf1f4",
-  panel: "#ffffff",
-  hundido: "#f4f7f9",
-  linea: "#d3dde4",
-  lineaFuerte: "#a9bcc8",
+  papel: "#0a1310",
+  panel: "#101b16",
+  panelAlto: "#16241d",
+  hundido: "#0d1713",
+  linea: "#22332b",
+  lineaFuerte: "#354b40",
 
-  tinta: "#0f2430",
-  tinta2: "#4a6376",
-  tinta3: "#6f8a9c",
+  tinta: "#e9f2ea",
+  tinta2: "#a3bcae",
+  tinta3: "#7a9488",
 
-  observado: "#009394",
-  observadoHondo: "#00696a",
-  observadoVelo: "#dcefef",
-  pronostico: "#cc6a00",
-  pronosticoHondo: "#8f4a00",
-  pronosticoVelo: "#fbeeda",
+  observado: "#20c093",
+  observadoClaro: "#5ad4b2",
+  pronostico: "#f0a640",
+  pronosticoClaro: "#f7c079",
+  tercero: "#b98cf5",
 
-  nino: "#a8123f",
-  nina: "#1d4ed8",
+  alerta: "#f4776a",
+  nina: "#5aa8ff",
+
+  // Marca del Tecnológico de Antioquia. Viste la identidad, no los datos.
+  lima: "#8cc63f",
+  verde: "#00843d",
 };
 
 /**
- * Paleta categórica de tecnologías de generación, en **orden fijo**.
+ * Mezcla de generación, en **orden fijo**.
  *
- * El color sigue a la entidad, nunca a su posición en el ranking: si un filtro
- * deja fuera la solar, la hidráulica no cambia de color. Por eso el mapa es
- * nombre -> color y no una lista que se recorre.
+ * Tres categorías y no cinco. Eólica, solar y cogeneración suman menos de un
+ * 9 % del sistema, y separarlas obligaba a meter un amarillo junto al ámbar de
+ * la térmica: ese par no llega ni a ΔE 12 en visión normal, así que eran dos
+ * franjas que nadie podía distinguir. Agrupadas en "otras fuentes" el gráfico
+ * dice lo mismo con tres colores que sí se separan.
  *
- * Validada para separación por visión cromática (ΔE ≥ 8 en todos los pares,
- * protanopía y deuteranopía) sobre fondo blanco. El oro solar queda por debajo
- * de 3:1 de contraste, así que allí donde se usa lleva etiqueta visible; no se
- * distingue nunca solo por el color.
+ * El color sigue a la entidad, nunca a su posición: si un filtro deja fuera una
+ * categoría, las demás no cambian de color.
+ *
+ * Validada sobre el fondo oscuro (#101b16): separación por visión cromática
+ * ΔE 9,3 en el peor par, por encima del objetivo de 8, y contraste mínimo
+ * 6,8:1.
  */
 export const TECNOLOGIAS = [
-  { clave: "generacion_hidraulica", etiqueta: "Hidráulica", color: "#009394" },
-  { clave: "generacion_termica", etiqueta: "Térmica", color: "#db6c00" },
-  { clave: "generacion_solar", etiqueta: "Solar", color: "#d1ae00" },
-  { clave: "generacion_otras", etiqueta: "Eólica y cogeneración", color: "#8b5cd6" },
+  { clave: "generacion_hidraulica", etiqueta: "Agua", color: COLOR.observado },
+  { clave: "generacion_termica", etiqueta: "Gas y carbón", color: COLOR.pronostico },
+  { clave: "generacion_otras", etiqueta: "Sol y viento", color: COLOR.tercero },
 ];
 
 /** Series que se suman en la categoría "otras" del gráfico de mezcla. */
-export const OTRAS_TECNOLOGIAS = ["generacion_eolica", "generacion_cogeneracion"];
-
-/**
- * Rampa secuencial del mapa: un solo tono, de claro a oscuro.
- *
- * Un solo tono porque lo que codifica es **magnitud**, y el ojo lee la
- * magnitud en la luminosidad. Una rampa de arcoíris introduce fronteras donde
- * los datos son continuos y no tiene un orden que nadie pueda leer sin leyenda.
- */
-export const RAMPA_MAPA = [
-  "#eef5f5",
-  "#cbe6e5",
-  "#97d2d0",
-  "#5cb8b6",
-  "#1f9b99",
-  "#00787a",
-  "#005457",
+export const OTRAS_TECNOLOGIAS = [
+  "generacion_solar",
+  "generacion_eolica",
+  "generacion_cogeneracion",
 ];
 
-export const COLOR_SIN_DATO = "#e3e9ed";
+/**
+ * Rampa secuencial del mapa: un solo tono, de oscuro a luminoso.
+ *
+ * Invertida respecto a un tema claro. Sobre un fondo oscuro la magnitud se lee
+ * en cuánta luz emite la zona, no en cuánta tinta lleva: el departamento que
+ * más consume es el que más brilla.
+ */
+export const RAMPA_MAPA = [
+  "#16261f",
+  "#1b453a",
+  "#1d6152",
+  "#1c7d69",
+  "#199a80",
+  "#20c093",
+  "#6fe0bd",
+];
+
+export const COLOR_SIN_DATO = "#1a231f";
 
 /** Familias de modelos, para agrupar la comparación. */
 export const FAMILIAS = {
   referencia: { etiqueta: "Referencia", color: COLOR.tinta3 },
-  lineal: { etiqueta: "Lineal", color: "#5055d3" },
-  arboles: { etiqueta: "Árboles", color: "#009394" },
-  serie_temporal: { etiqueta: "Serie temporal", color: "#db6c00" },
-  red_neuronal: { etiqueta: "Red neuronal", color: "#8b5cd6" },
+  lineal: { etiqueta: "Lineal", color: COLOR.nina },
+  arboles: { etiqueta: "Árboles", color: COLOR.observado },
+  serie_temporal: { etiqueta: "Serie temporal", color: COLOR.pronostico },
+  red_neuronal: { etiqueta: "Red neuronal", color: COLOR.tercero },
   otro: { etiqueta: "Otro", color: COLOR.lineaFuerte },
 };
 
@@ -87,3 +98,13 @@ export const EJE = {
   fontFamily: "IBM Plex Mono, monospace",
   fill: COLOR.tinta3,
 };
+
+/** Paleta para las series que el usuario elige libremente en el explorador. */
+export const PALETA_SERIES = [
+  COLOR.observado,
+  COLOR.pronostico,
+  COLOR.tercero,
+  COLOR.nina,
+  COLOR.lima,
+  COLOR.tinta2,
+];
