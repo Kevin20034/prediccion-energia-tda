@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import * as api from "../api";
 import { Contador, Revelar } from "../componentes/animacion";
 import GraficaPronostico from "../componentes/graficas/GraficaPronostico";
+import Herramientas from "../componentes/graficas/Herramientas";
 import PulsoCarga from "../componentes/PulsoCarga";
 import { Cargando, Panel, Vacio } from "../componentes/ui";
 import { decimales, energia, fechaHora } from "../formato";
@@ -29,9 +30,20 @@ const OBJETIVOS = [
 
 const FLECHAS = { sube: "▲", baja: "▲", estable: "▶" };
 
-export default function Inicio({ alFallar, alIrAlMapa }) {
+/** Columnas del CSV que se descarga junto a la gráfica. */
+const COLUMNAS_CSV = [
+  { titulo: "fecha", valor: (f) => f.fecha },
+  { titulo: "tipo", valor: (f) => f.tipo },
+  { titulo: "valor", valor: (f) => f.valor },
+  { titulo: "minimo", valor: (f) => f.minimo ?? "" },
+  { titulo: "maximo", valor: (f) => f.maximo ?? "" },
+];
+
+export default function Inicio({ alFallar, alAvisar, alIrAlMapa }) {
   const [objetivo, setObjetivo] = useState("precio_bolsa");
   const [horizonte, setHorizonte] = useState(24);
+  const [forma, setForma] = useState("linea");
+  const contenedorGrafica = useRef(null);
 
   const [panorama, setPanorama] = useState(null);
   const [pronostico, setPronostico] = useState(null);
@@ -79,6 +91,27 @@ export default function Inicio({ alFallar, alIrAlMapa }) {
       vigente = false;
     };
   }, [objetivo, horizonte]);
+
+  // El CSV lleva observado y pronosticado en una sola tabla, con la banda al
+  // lado: quien lo abra debe poder rehacer la gráfica entera, no solo la parte
+  // medida.
+  const filasCSV = useMemo(() => {
+    if (!pronostico) return [];
+    return [
+      ...(pronostico.observado ?? []).map((p) => ({
+        fecha: p.fecha_hora,
+        tipo: "observado",
+        valor: p.valor,
+      })),
+      ...(pronostico.pronostico ?? []).map((p) => ({
+        fecha: p.fecha_objetivo,
+        tipo: "pronosticado",
+        valor: p.valor_estimado,
+        minimo: p.limite_inferior,
+        maximo: p.limite_superior,
+      })),
+    ];
+  }, [pronostico]);
 
   const esPrecio = objetivo === "precio_bolsa";
   const indicador = esPrecio ? panorama?.precio : panorama?.demanda;
@@ -166,12 +199,27 @@ export default function Inicio({ alFallar, alIrAlMapa }) {
           {cargandoGrafica ? (
             <Cargando texto="calculando" />
           ) : pronostico ? (
-            <GraficaPronostico
-              observado={pronostico.observado ?? []}
-              pronostico={pronostico.pronostico ?? []}
-              unidad={pronostico.unidad ?? ""}
-              animar
-            />
+            <>
+              <div ref={contenedorGrafica}>
+                <GraficaPronostico
+                  observado={pronostico.observado ?? []}
+                  pronostico={pronostico.pronostico ?? []}
+                  unidad={pronostico.unidad ?? ""}
+                  forma={forma}
+                  animar
+                />
+              </div>
+              <Herramientas
+                forma={forma}
+                alCambiarForma={setForma}
+                contenedor={contenedorGrafica}
+                nombre={`${esPrecio ? "precio" : "demanda"}-${elegido?.etiqueta ?? ""}`}
+                tituloInforme={`Pronóstico de ${esPrecio ? "precio" : "demanda"} · SIN · TdeA`}
+                datosCSV={filasCSV}
+                columnasCSV={COLUMNAS_CSV}
+                alFallar={alAvisar}
+              />
+            </>
           ) : (
             <Vacio
               titulo="Sin pronóstico para este plazo"
@@ -210,6 +258,16 @@ export default function Inicio({ alFallar, alIrAlMapa }) {
           alVerMapa={alIrAlMapa}
         />
       </Revelar>
+
+      {/* Solo se ve al imprimir. Un informe suelto tiene que decir de dónde
+          salió y con qué datos, o dentro de un mes nadie sabrá qué está
+          mirando ni si sigue vigente. */}
+      <p className="pie-informe">
+        Sistema Interconectado Nacional · Tecnológico de Antioquia. Datos de XM
+        con corte a {fechaHora(panorama.instante)}. Generado el{" "}
+        {fechaHora(new Date().toISOString())}. Los valores pronosticados son
+        estimaciones de un modelo estadístico, no mediciones.
+      </p>
     </div>
   );
 }
@@ -428,6 +486,8 @@ function Mezcla({ partes = [] }) {
 }
 
 function Departamentos({ departamentos = [], alVerMapa }) {
+  const maximo = Math.max(...departamentos.map((d) => d.participacion ?? 0), 1);
+
   if (!departamentos.length) {
     return (
       <Panel rotulo="Territorio" titulo="Dónde se consume">
@@ -452,24 +512,31 @@ function Departamentos({ departamentos = [], alVerMapa }) {
       }
       pie="Los departamentos marcados como estimados forman parte de un mercado que XM publica agrupado con otros; su cifra es un reparto, no una medición directa."
     >
+      {/* Una sola cifra por fila, y una barra que la hace comparable de un
+          vistazo. Antes iban los GWh y el porcentaje juntos: dos números por
+          línea que decían lo mismo y obligaban a leer seis veces para sacar el
+          orden, que era justo lo que la barra ya cuenta sin leer nada. */}
       <div className="deptos">
-        {departamentos.map((depto, indice) => {
-          const total = energia(depto.demanda_24h);
-          return (
-            <div className="depto-fila" key={depto.codigo_dane}>
-              <span className="depto-fila__puesto">{indice + 1}</span>
-              <span className="depto-fila__nombre">
-                <span>{depto.departamento}</span>
-                {depto.estimado && (
-                  <span className="insignia insignia--estimada">estimado</span>
-                )}
-              </span>
-              <span className="depto-fila__valor">
-                {total.valor} {total.unidad} · {decimales(depto.participacion, 1)} %
-              </span>
-            </div>
-          );
-        })}
+        {departamentos.map((depto, indice) => (
+          <div className="depto-fila" key={depto.codigo_dane}>
+            <span className="depto-fila__puesto">{indice + 1}</span>
+            <span className="depto-fila__nombre">
+              <span>{depto.departamento}</span>
+              {depto.estimado && (
+                <span className="insignia insignia--estimada">estimado</span>
+              )}
+            </span>
+            <span className="depto-fila__barra" aria-hidden="true">
+              <span
+                className="depto-fila__relleno"
+                style={{ width: `${(depto.participacion ?? 0) / maximo * 100}%` }}
+              />
+            </span>
+            <span className="depto-fila__valor">
+              {decimales(depto.participacion, 1)} %
+            </span>
+          </div>
+        ))}
       </div>
     </Panel>
   );

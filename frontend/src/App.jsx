@@ -10,19 +10,26 @@ import Modelos from "./secciones/Modelos";
 import Pronostico from "./secciones/Pronostico";
 
 /**
- * Secciones de la aplicación.
+ * Secciones de la aplicación y a quién se le muestran.
  *
- * `tecnica: true` marca las que solo tienen sentido para quien opera el
- * sistema. Un usuario institucional entra a consultar el estado del mercado, no
- * a comparar RMSE entre nueve modelos ni a lanzar ingestas: enseñarle esas
- * pestañas no le da poder, le da ruido. Ve dos secciones; quien opera, cinco.
+ * `acceso` dice el nivel mínimo que hace falta para verla:
+ *
+ *   `todos`     — cualquiera que entre. Es la aplicación tal y como la usa
+ *                 alguien que solo quiere saber cómo está el mercado.
+ *   `operador`  — analistas y administrador: quienes ingieren datos y
+ *                 disparan entrenamientos.
+ *   `admin`     — solo el administrador. La comparación de modelos vive aquí
+ *                 porque es una herramienta de diagnóstico interno: RMSE, MASE
+ *                 e importancia de variables no le sirven a nadie más, y
+ *                 mostrarlas invita a sacar conclusiones sin el contexto
+ *                 metodológico que hay detrás.
  */
 const SECCIONES = [
-  { clave: "inicio", etiqueta: "Inicio", Componente: Inicio, tecnica: false },
-  { clave: "mapa", etiqueta: "Mapa", Componente: Mapa, tecnica: false },
-  { clave: "pronostico", etiqueta: "Pronóstico", Componente: Pronostico, tecnica: true },
-  { clave: "modelos", etiqueta: "Modelos", Componente: Modelos, tecnica: true },
-  { clave: "datos", etiqueta: "Datos", Componente: Datos, tecnica: true },
+  { clave: "inicio", etiqueta: "Inicio", Componente: Inicio, acceso: "todos" },
+  { clave: "mapa", etiqueta: "Mapa", Componente: Mapa, acceso: "todos" },
+  { clave: "pronostico", etiqueta: "Detalle", Componente: Pronostico, acceso: "operador" },
+  { clave: "datos", etiqueta: "Datos", Componente: Datos, acceso: "operador" },
+  { clave: "modelos", etiqueta: "Modelos", Componente: Modelos, acceso: "admin" },
 ];
 
 /** Por debajo de este nivel de embalse, la regla superior pasa a ámbar. */
@@ -46,12 +53,13 @@ export default function App() {
   const [aviso, setAviso] = useState(null);
   const [nivelEmbalse, setNivelEmbalse] = useState(null);
 
-  const puedeOperar = usuario?.rol === "ADMINISTRADOR" || usuario?.rol === "ANALISTA";
+  const esAdmin = usuario?.rol === "ADMINISTRADOR";
+  const puedeOperar = esAdmin || usuario?.rol === "ANALISTA";
 
-  const visibles = useMemo(
-    () => SECCIONES.filter((s) => !s.tecnica || puedeOperar),
-    [puedeOperar]
-  );
+  const visibles = useMemo(() => {
+    const permitido = { todos: true, operador: puedeOperar, admin: esAdmin };
+    return SECCIONES.filter((s) => permitido[s.acceso]);
+  }, [puedeOperar, esAdmin]);
   const claves = useMemo(() => visibles.map((s) => s.clave), [visibles]);
 
   const alFallar = useCallback((error) => {

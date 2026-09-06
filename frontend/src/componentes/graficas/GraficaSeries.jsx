@@ -11,7 +11,7 @@ import {
 } from "recharts";
 
 import { decimales, marcaTemporal } from "../../formato";
-import { COLOR, EJE } from "../../tokens";
+import { COLOR, EJE, PALETA_SERIES } from "../../tokens";
 
 /**
  * Series temporales conmutables.
@@ -29,7 +29,6 @@ import { COLOR, EJE } from "../../tokens";
  * agregados al servidor, que es donde agregar es barato.
  */
 
-const PALETA = ["#009394", "#db6c00", "#5055d3", "#b42370", "#8b5cd6", "#6f8a9c"];
 const ALTO = 250;
 
 export default function GraficaSeries({ respuesta, resolucion = "hora", cargando }) {
@@ -156,7 +155,7 @@ function agruparPorUnidad(respuesta) {
   if (!respuesta?.series?.length) return [];
 
   const colorDe = new Map(
-    respuesta.series.map((s, i) => [s.variable, PALETA[i % PALETA.length]])
+    respuesta.series.map((s, i) => [s.variable, PALETA_SERIES[i % PALETA_SERIES.length]])
   );
 
   const porUnidad = new Map();

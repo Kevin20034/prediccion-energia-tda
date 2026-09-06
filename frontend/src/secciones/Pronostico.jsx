@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import * as api from "../api";
 import Costura from "../componentes/Costura";
 import GraficaMezcla from "../componentes/graficas/GraficaMezcla";
 import GraficaPerfil from "../componentes/graficas/GraficaPerfil";
 import GraficaPronostico from "../componentes/graficas/GraficaPronostico";
+import Herramientas from "../componentes/graficas/Herramientas";
 import { Cargando, Cifra, Conmutador, Panel, Vacio } from "../componentes/ui";
 import { decimales, fechaHora } from "../formato";
 
@@ -19,6 +20,15 @@ const HORIZONTES = [
   { valor: 720, etiqueta: "30 días", texto: "30 d" },
 ];
 
+/** Columnas del CSV que acompaña a la gráfica. */
+const COLUMNAS_CSV = [
+  { titulo: "fecha", valor: (f) => f.fecha },
+  { titulo: "tipo", valor: (f) => f.tipo },
+  { titulo: "valor", valor: (f) => f.valor },
+  { titulo: "minimo", valor: (f) => f.minimo ?? "" },
+  { titulo: "maximo", valor: (f) => f.maximo ?? "" },
+];
+
 /** Variables de generación que alimentan la gráfica de mezcla. */
 const VARIABLES_MEZCLA = [
   "generacion_hidraulica",
@@ -28,9 +38,11 @@ const VARIABLES_MEZCLA = [
   "generacion_cogeneracion",
 ];
 
-export default function Pronostico({ puedeOperar, alFallar }) {
+export default function Pronostico({ puedeOperar, alFallar, alAvisar }) {
   const [objetivo, setObjetivo] = useState("precio_bolsa");
   const [horizonte, setHorizonte] = useState(24);
+  const [forma, setForma] = useState("linea");
+  const contenedorGrafica = useRef(null);
 
   const [datos, setDatos] = useState(null);
   const [disponibles, setDisponibles] = useState([]);
@@ -87,6 +99,26 @@ export default function Pronostico({ puedeOperar, alFallar }) {
   const combinacionesConModelo = useMemo(
     () => new Set(disponibles.map((d) => `${d.objetivo}|${d.horizonte}`)),
     [disponibles]
+  );
+
+  // Observado y pronosticado en una sola tabla: quien abra el CSV tiene que
+  // poder rehacer la gráfica entera, no solo la parte medida.
+  const filasCSV = useMemo(
+    () => [
+      ...(datos?.observado ?? []).map((p) => ({
+        fecha: p.fecha_hora,
+        tipo: "observado",
+        valor: p.valor,
+      })),
+      ...(datos?.pronostico ?? []).map((p) => ({
+        fecha: p.fecha_objetivo,
+        tipo: "pronosticado",
+        valor: p.valor_estimado,
+        minimo: p.limite_inferior,
+        maximo: p.limite_superior,
+      })),
+    ],
+    [datos]
   );
 
   const ultimoObservado = datos?.observado?.at(-1) ?? null;
@@ -156,12 +188,27 @@ export default function Pronostico({ puedeOperar, alFallar }) {
             {cargando ? (
               <Cargando texto="calculando pronóstico" />
             ) : (
-              <GraficaPronostico
-                observado={datos?.observado ?? []}
-                pronostico={datos?.pronostico ?? []}
-                unidad={datos?.unidad ?? ""}
-                conBrush
-              />
+              <>
+                <div ref={contenedorGrafica}>
+                  <GraficaPronostico
+                    observado={datos?.observado ?? []}
+                    pronostico={datos?.pronostico ?? []}
+                    unidad={datos?.unidad ?? ""}
+                    forma={forma}
+                    conBrush
+                  />
+                </div>
+                <Herramientas
+                  forma={forma}
+                  alCambiarForma={setForma}
+                  contenedor={contenedorGrafica}
+                  nombre={`${objetivo}-${horizonte}h`}
+                  tituloInforme={`Pronóstico ${objetivo} ${horizonte}h · SIN · TdeA`}
+                  datosCSV={filasCSV}
+                  columnasCSV={COLUMNAS_CSV}
+                  alFallar={alAvisar}
+                />
+              </>
             )}
           </>
         )}

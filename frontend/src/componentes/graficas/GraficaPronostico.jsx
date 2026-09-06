@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import {
   Area,
+  Bar,
   Brush,
   CartesianGrid,
   ComposedChart,
@@ -47,6 +48,7 @@ export default function GraficaPronostico({
   unidad = "COP/kWh",
   conBrush = false,
   animar = false,
+  forma = "linea",
 }) {
   const serie = useMemo(() => combinar(observado, pronostico), [observado, pronostico]);
   const dominio = useMemo(() => dominioVertical(serie), [serie]);
@@ -107,7 +109,7 @@ export default function GraficaPronostico({
                 y2="7"
                 stroke={COLOR.pronostico}
                 strokeWidth="1"
-                opacity="0.13"
+                opacity="0.07"
               />
             </pattern>
           </defs>
@@ -162,8 +164,8 @@ export default function GraficaPronostico({
             dataKey="bandaEspesor"
             stackId="banda"
             stroke="none"
-            fill={COLOR.pronostico}
-            fillOpacity={0.16}
+            fill={COLOR.pronosticoClaro}
+            fillOpacity={0.24}
             /* La banda entra después de las líneas: primero se ve el trazo y
                luego crece la incertidumbre a su alrededor, que es el orden en
                que se lee la gráfica. */
@@ -191,30 +193,88 @@ export default function GraficaPronostico({
             />
           )}
 
-          <Line
-            type="monotone"
-            dataKey="observado"
-            stroke={COLOR.observado}
-            strokeWidth={2}
-            dot={false}
-            connectNulls={false}
-            isAnimationActive={animacion}
-            animationDuration={800}
-            name="Observado"
-          />
-          <Line
-            type="monotone"
-            dataKey="estimado"
-            stroke={COLOR.pronostico}
-            strokeWidth={2}
-            strokeDasharray="5 4"
-            dot={false}
-            connectNulls={false}
-            isAnimationActive={animacion}
-            animationBegin={animacion ? 500 : 0}
-            animationDuration={700}
-            name="Pronosticado"
-          />
+          {/* La forma la elige quien mira: la línea enseña el recorrido, el
+              área el volumen y las barras el valor de cada momento. Lo que no
+              cambia nunca es el código de color ni el trazo discontinuo del
+              pronóstico: eso es el dato, no la presentación. */}
+          {forma === "barras" ? (
+            <>
+              <Bar
+                dataKey="observado"
+                fill={COLOR.observado}
+                isAnimationActive={animacion}
+                animationDuration={800}
+                name="Observado"
+              />
+              <Bar
+                dataKey="estimado"
+                fill={COLOR.pronostico}
+                fillOpacity={0.75}
+                isAnimationActive={animacion}
+                animationBegin={animacion ? 400 : 0}
+                animationDuration={700}
+                name="Pronosticado"
+              />
+            </>
+          ) : forma === "area" ? (
+            <>
+              <Area
+                type="monotone"
+                dataKey="observado"
+                stroke={COLOR.observado}
+                strokeWidth={2}
+                fill={COLOR.observado}
+                fillOpacity={0.22}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={animacion}
+                animationDuration={800}
+                name="Observado"
+              />
+              <Area
+                type="monotone"
+                dataKey="estimado"
+                stroke={COLOR.pronostico}
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                fill={COLOR.pronostico}
+                fillOpacity={0.18}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={animacion}
+                animationBegin={animacion ? 500 : 0}
+                animationDuration={700}
+                name="Pronosticado"
+              />
+            </>
+          ) : (
+            <>
+              <Line
+                type="monotone"
+                dataKey="observado"
+                stroke={COLOR.observado}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={animacion}
+                animationDuration={800}
+                name="Observado"
+              />
+              <Line
+                type="monotone"
+                dataKey="estimado"
+                stroke={COLOR.pronostico}
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={animacion}
+                animationBegin={animacion ? 500 : 0}
+                animationDuration={700}
+                name="Pronosticado"
+              />
+            </>
+          )}
 
           {conBrush && (
             <Brush
@@ -240,7 +300,7 @@ function Pista({ active, payload, unidad }) {
   const valor = esEstimado ? punto.estimado : punto.observado;
   if (valor == null) return null;
 
-  const color = esEstimado ? COLOR.pronosticoHondo : COLOR.observadoHondo;
+  const color = esEstimado ? COLOR.pronosticoClaro : COLOR.observadoClaro;
 
   return (
     <div className="pista">

@@ -97,12 +97,11 @@ export default function Mapa({ puedeOperar, alFallar }) {
       <header className="seccion__cabecera">
         <div>
           <div className="rotulo">Territorio</div>
-          <h1 className="seccion__titulo">Demanda por departamento</h1>
+          <h1 className="seccion__titulo">Dónde se consume la energía</h1>
           <p className="seccion__nota">
-            XM publica la demanda comercial por mercado de comercialización, no por
-            departamento. Los mercados que cubren varios departamentos —Caribe Mar,
-            Caribe Sol y Bogotá–Cundinamarca— se reparten con pesos documentados, y esos
-            departamentos aparecen marcados como <b>estimados</b>.
+            Cuanto más claro el verde, más energía consume ese departamento. Los
+            marcados como <b>estimados</b> comparten con otros la zona que XM publica
+            junta, así que su cifra es un reparto y no una medición directa.
           </p>
         </div>
         <Conmutador
@@ -131,42 +130,37 @@ export default function Mapa({ puedeOperar, alFallar }) {
         </Panel>
       ) : (
         <>
+          {/* Dos cifras, no cuatro. "Departamentos con demanda" y "fuera del
+              SIN" eran contadores que el propio mapa ya enseña —los grises se
+              cuentan mirando— y ocupaban la mitad de la fila para decir algo
+              que nadie necesita en número. Lo que sí hace falta es cuánto
+              consume el país y quién manda. */}
           <div className="rejilla rejilla--cifras" style={{ marginBottom: 16 }}>
             <Cifra
-              rotulo={`Demanda nacional · ${VENTANAS.find((v) => v.valor === horas)?.etiqueta}`}
+              rotulo={`Consumo del país · ${VENTANAS.find((v) => v.valor === horas)?.etiqueta}`}
               valor={total.valor}
               unidad={total.unidad}
               naturaleza="medida"
               pie={mapa?.instante ? `hasta ${fechaHora(mapa.instante)}` : null}
             />
             <Cifra
-              rotulo="Departamentos con demanda"
-              valor={conectados.filter((d) => d.demanda_24h).length}
-              naturaleza="medida"
-              pie={`${estimados} con valor estimado por reparto`}
-            />
-            <Cifra
-              rotulo="Mayor consumo"
+              rotulo="Dónde más se consume"
               valor={ranking[0]?.departamento ?? "—"}
               naturaleza="medida"
               pie={
-                ranking[0] ? `${porcentaje(ranking[0].participacion)} del país` : null
+                ranking[0]
+                  ? `${porcentaje(ranking[0].participacion)} de toda la energía del país`
+                  : null
               }
-            />
-            <Cifra
-              rotulo="Fuera del SIN"
-              valor={(mapa?.departamentos ?? []).filter((d) => !d.interconectado).length}
-              naturaleza="neutra"
-              pie="Zonas No Interconectadas, abastecidas con generación local"
             />
           </div>
 
           <div className="rejilla rejilla--mapa">
             <Panel
-              rotulo="Mapa coroplético"
-              titulo="Demanda agregada por departamento"
+              rotulo="Mapa"
+              titulo="Consumo de cada departamento"
               ajustado
-              pie="Los cortes de color son por cuantiles, no lineales: la demanda está tan concentrada que una escala lineal dejaría casi todo el país del mismo tono."
+              pie="Los departamentos en gris no están conectados a la red nacional: se abastecen con generación local, así que XM no publica su consumo."
             >
               <Escala departamentos={conectados} />
               {cargando ? (
@@ -192,13 +186,13 @@ export default function Mapa({ puedeOperar, alFallar }) {
                   />
                 ) : (
                   <p className="seccion__nota">
-                    Pulsa cualquier departamento del mapa para ver su serie histórica, su
-                    hora punta y de qué mercados de XM procede su dato.
+                    Pulsa cualquier departamento del mapa para ver cuánto consume, a
+                    qué hora consume más y cómo ha evolucionado.
                   </p>
                 )}
               </Panel>
 
-              <Panel rotulo="Ranking" titulo="Por demanda agregada">
+              <Panel rotulo="Ranking" titulo="De mayor a menor consumo">
                 <div className="ranking">
                   {ranking.slice(0, 14).map((d) => (
                     <button
@@ -301,34 +295,44 @@ function DetalleDepartamento({ departamento, serie, resolucion, alCambiarResoluc
         />
       </div>
 
+      {/* Una frase en lugar de cinco lecturas. Consumo, media horaria,
+          variación, hora punta y participación eran cinco números sueltos que
+          el lector tenía que relacionar por su cuenta; dichos como una frase,
+          la relación ya está hecha. Los dos que de verdad se comparan entre
+          departamentos —cuánto consume y qué parte del país es— siguen como
+          cifras, porque para comparar hace falta el número. */}
       <div className="lectura">
-        <span className="rotulo">Demanda en la ventana</span>
+        <span className="rotulo">Consume</span>
         <span className="lectura__valor">
           {total.valor} {total.unidad}
         </span>
       </div>
       <div className="lectura">
-        <span className="rotulo">Media horaria (7 días)</span>
-        <span className="lectura__valor">
-          {media.valor} {media.unidad}
-        </span>
-      </div>
-      <div className="lectura">
-        <span className="rotulo">Variación</span>
-        <span className="lectura__valor">{signo(departamento.variacion_24h)}</span>
-      </div>
-      <div className="lectura">
-        <span className="rotulo">Hora punta</span>
-        <span className="lectura__valor">
-          {departamento.pico_horario == null
-            ? "—"
-            : `${String(departamento.pico_horario).padStart(2, "0")}:00`}
-        </span>
-      </div>
-      <div className="lectura">
-        <span className="rotulo">Participación nacional</span>
+        <span className="rotulo">Del total del país</span>
         <span className="lectura__valor">{porcentaje(departamento.participacion)}</span>
       </div>
+
+      <p className="ayuda">
+        {departamento.pico_horario != null && (
+          <>
+            Consume más a las{" "}
+            <strong>
+              {String(departamento.pico_horario).padStart(2, "0")}:00
+            </strong>
+            .{" "}
+          </>
+        )}
+        {departamento.variacion_24h != null && (
+          <>
+            {Math.abs(departamento.variacion_24h) < 2
+              ? "Su consumo se mantiene estable"
+              : `Su consumo ${departamento.variacion_24h > 0 ? "subió" : "bajó"} ${signo(
+                  Math.abs(departamento.variacion_24h)
+                ).replace("+", "")}`}{" "}
+            respecto al periodo anterior.
+          </>
+        )}
+      </p>
 
       {datos.length > 1 && (
         <div style={{ marginTop: 14 }}>
