@@ -38,22 +38,27 @@ router = APIRouter(tags=["Panorama"])
 
 #: Tecnologías de generación que se muestran, en orden fijo.
 #:
-#: Eólica y cogeneración van juntas en "Otras fuentes": entre las dos no llegan
-#: al 3 % del sistema, y darles franja propia gastaría dos colores de la paleta
-#: —que está validada para cuatro categorías distinguibles— en segmentos que a
-#: escala real no se ven.
+#: **Tres categorías, no cinco.** Sol, viento y cogeneración suman menos del
+#: 9 % del sistema, y separarlas obligaba a poner un amarillo junto al ámbar de
+#: la térmica: ese par no llega ni a ΔE 12 en visión normal, así que eran dos
+#: franjas que nadie podía distinguir. Agrupadas dicen lo mismo con tres
+#: colores que sí se separan y una línea menos que leer.
 TECNOLOGIAS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("generacion_hidraulica", ("generacion_hidraulica",)),
     ("generacion_termica", ("generacion_termica",)),
-    ("generacion_solar", ("generacion_solar",)),
-    ("generacion_otras", ("generacion_eolica", "generacion_cogeneracion")),
+    (
+        "generacion_otras",
+        ("generacion_solar", "generacion_eolica", "generacion_cogeneracion"),
+    ),
 )
 
+#: Nombres en lenguaje llano. "Hidráulica" y "térmica" son el vocabulario del
+#: sector; "agua" y "gas y carbón" son lo que la gente entiende, y además dicen
+#: exactamente lo mismo.
 ETIQUETAS_TECNOLOGIA: dict[str, str] = {
-    "generacion_hidraulica": "Hidráulica",
-    "generacion_termica": "Térmica",
-    "generacion_solar": "Solar",
-    "generacion_otras": "Eólica y cogeneración",
+    "generacion_hidraulica": "Agua",
+    "generacion_termica": "Gas y carbón",
+    "generacion_otras": "Sol y viento",
 }
 
 #: Cortes del nivel de embalse. No son arbitrarios: por debajo del 30 % el
@@ -400,7 +405,7 @@ def _detalle(embalses: Embalses, mezcla: list[ParteMezcla]) -> str:
     principal = mezcla[0]
     frase = (
         f"En las últimas 24 horas, el {principal.porcentaje:.0f} % de la energía "
-        f"del país vino de generación {principal.etiqueta.lower()}."
+        f"del país se generó con {principal.etiqueta.lower()}."
     )
     return f"{embalses.descripcion} {frase}" if embalses.descripcion else frase
 

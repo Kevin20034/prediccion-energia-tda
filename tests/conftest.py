@@ -90,6 +90,20 @@ def usuario_admin(db: Session) -> Usuario:
 
 
 @pytest.fixture
+def usuario_analista(db: Session) -> Usuario:
+    usuario = Usuario(
+        email="analista@test.co",
+        nombre="Analista de Pruebas",
+        password_hash=hashear_password("Password123*"),
+        rol=RolUsuario.ANALISTA,
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+@pytest.fixture
 def usuario_institucional(db: Session) -> Usuario:
     usuario = Usuario(
         email="consulta@test.co",

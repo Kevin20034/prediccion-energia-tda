@@ -126,6 +126,25 @@ class TestAutorizacion:
         respuesta = cliente.post("/entrenar", json={}, headers=cabecera(token))
         assert respuesta.status_code == 403
 
+    def test_solo_el_administrador_ve_la_comparacion_de_modelos(
+        self, cliente, usuario_admin, usuario_analista, usuario_institucional
+    ):
+        """La pestaña de modelos está oculta para los demás roles, y cerrada.
+
+        Ocultar una pestaña en la interfaz no restringe nada: la ruta sigue ahí
+        para quien sepa escribirla. Estas dos comprobaciones son las que
+        convierten "no se ve" en "no se puede".
+        """
+        for email in ("analista@test.co", "consulta@test.co"):
+            token = token_de(cliente, email)
+            for ruta in ("/modelos/comparacion", "/entrenamientos"):
+                assert cliente.get(ruta, headers=cabecera(token)).status_code == 403, (
+                    f"{email} llegó a {ruta}"
+                )
+
+        token = token_de(cliente, "admin@test.co")
+        assert cliente.get("/modelos/comparacion", headers=cabecera(token)).status_code == 200
+
     def test_institucional_no_puede_gestionar_usuarios(self, cliente, usuario_institucional):
         token = token_de(cliente, usuario_institucional.email)
         assert cliente.get("/usuarios", headers=cabecera(token)).status_code == 403

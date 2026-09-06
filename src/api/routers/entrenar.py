@@ -8,7 +8,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 
-from src.api.deps import SesionBD, UsuarioActual, analista_o_superior
+from src.api.deps import SesionBD, analista_o_superior, solo_administrador
 from src.api.routers.datos import _cargar_historico
 from src.api.schemas.prediccion import (
     EjecucionSalida,
@@ -107,10 +107,10 @@ def entrenar(solicitud: SolicitudEntrenamiento, db: SesionBD) -> RespuestaEntren
     "/entrenamientos",
     response_model=list[EjecucionSalida],
     summary="Histórico de entrenamientos",
+    dependencies=[Depends(solo_administrador)],
 )
 def historico(
     db: SesionBD,
-    _usuario: UsuarioActual,
     objetivo: str | None = Query(None),
     horizonte: int | None = Query(None, ge=1, le=720),
     limite: int = Query(50, ge=1, le=500),
@@ -132,10 +132,10 @@ def historico(
     "/modelos/comparacion",
     response_model=RespuestaComparacion,
     summary="Qué modelo gana en cada horizonte, y por qué",
+    dependencies=[Depends(solo_administrador)],
 )
 def comparacion(
     db: SesionBD,
-    _usuario: UsuarioActual,
     objetivo: str | None = Query(None, description="Filtra por objetivo"),
 ) -> RespuestaComparacion:
     """Consolida el **último lote** de entrenamiento de cada objetivo y horizonte.
