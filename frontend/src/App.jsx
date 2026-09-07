@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import * as api from "./api";
 import Acceso from "./componentes/Acceso";
+import Frescura from "./componentes/Frescura";
 import LogoTdeA from "./componentes/LogoTdeA";
 import { Aviso, Cargando } from "./componentes/ui";
 import Datos from "./secciones/Datos";
@@ -172,6 +173,9 @@ export default function App() {
           </nav>
 
           <span className="hueco" />
+
+          {/* Antes de decir quién eres, dice de cuándo es lo que estás viendo. */}
+          <Frescura />
 
           <span className="barra__usuario">
             <div className="rotulo">{usuario.rol}</div>

@@ -1187,3 +1187,61 @@
 .explicacion__nota strong {
   color: var(--tinta);
 }
+
+/* ===========================================================================
+   Frescura del dato (barra superior)
+
+   Dos líneas, no una: arriba hasta cuándo llega el dato publicado, abajo cuándo
+   se revisó. Fundirlas sería volver a poder confundir el refresco de la pantalla
+   con la frescura del dato.
+   =========================================================================== */
+.frescura {
+  text-align: right;
+  line-height: 1.25;
+  white-space: nowrap;
+  padding-right: 14px;
+  margin-right: 2px;
+  border-right: 1px solid var(--linea);
+}
+
+.frescura__dato {
+  display: block;
+  font-size: 11px;
+  color: var(--tinta-2);
+}
+
+.frescura__dato b {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+.frescura__revision {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+}
+
+/* Un dato de más de dos días es una señal, no un detalle: se tiñe del mismo
+   ámbar que marca lo inferido, porque en la práctica ya no es una medición
+   vigente del sistema. */
+.frescura--vieja .frescura__dato b {
+  color: var(--pronostico-claro);
+}
+
+.frescura--vieja .frescura__dato::after {
+  content: " ·";
+  color: var(--pronostico);
+}
+
+/* En pantalla estrecha la barra ya esconde el correo del usuario; la frescura
+   se queda, pero sin el borde que la separaba. */
+@media (max-width: 720px) {
+  .frescura {
+    border-right: none;
+    padding-right: 0;
+  }
+  .frescura__revision {
+    display: none;
+  }
+}

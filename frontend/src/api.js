@@ -97,6 +97,9 @@ export const panorama = (objetivo = "precio_bolsa") =>
 
 export const resumenDatos = () => pedir("/datos/resumen");
 
+/** Frescura de cada fuente y estado de la ingesta automática. */
+export const estadoDatos = () => pedir("/estado-datos");
+
 export const catalogoVariables = () => pedir("/datos/catalogo");
 
 export const ultimosDatos = (limite = 336) => pedir(`/datos${query({ limite })}`);
