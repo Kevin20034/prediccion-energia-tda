@@ -57,42 +57,53 @@ class Departamento:
     nombre: str
     #: `False` para las Zonas No Interconectadas, que no tienen demanda en el SIN.
     interconectado: bool = True
+    #: Coordenadas de la **capital**, no del centroide geométrico.
+    #:
+    #: El clima solo interesa aquí en la medida en que explica consumo, y el
+    #: consumo está donde está la gente. El centroide del Chocó cae en selva
+    #: deshabitada y el del Meta en llanura vacía: su temperatura no explica
+    #: ninguna curva de demanda.
+    latitud: float = 0.0
+    longitud: float = 0.0
 
 
 DEPARTAMENTOS: tuple[Departamento, ...] = (
-    Departamento("05", "Antioquia"),
-    Departamento("08", "Atlántico"),
-    Departamento("11", "Bogotá D.C."),
-    Departamento("13", "Bolívar"),
-    Departamento("15", "Boyacá"),
-    Departamento("17", "Caldas"),
-    Departamento("18", "Caquetá"),
-    Departamento("19", "Cauca"),
-    Departamento("20", "Cesar"),
-    Departamento("23", "Córdoba"),
-    Departamento("25", "Cundinamarca"),
-    Departamento("27", "Chocó"),
-    Departamento("41", "Huila"),
-    Departamento("44", "La Guajira"),
-    Departamento("47", "Magdalena"),
-    Departamento("50", "Meta"),
-    Departamento("52", "Nariño"),
-    Departamento("54", "Norte de Santander"),
-    Departamento("63", "Quindío"),
-    Departamento("66", "Risaralda"),
-    Departamento("68", "Santander"),
-    Departamento("70", "Sucre"),
-    Departamento("73", "Tolima"),
-    Departamento("76", "Valle del Cauca"),
-    Departamento("81", "Arauca"),
-    Departamento("85", "Casanare"),
-    Departamento("86", "Putumayo"),
-    Departamento("88", "San Andrés y Providencia", False),
-    Departamento("91", "Amazonas", False),
-    Departamento("94", "Guainía", False),
-    Departamento("95", "Guaviare"),
-    Departamento("97", "Vaupés", False),
-    Departamento("99", "Vichada", False),
+    Departamento("05", "Antioquia", True, 6.2442, -75.5812),           # Medellín
+    Departamento("08", "Atlántico", True, 10.9685, -74.7813),          # Barranquilla
+    Departamento("11", "Bogotá D.C.", True, 4.7110, -74.0721),         # Bogotá
+    Departamento("13", "Bolívar", True, 10.3910, -75.4794),            # Cartagena
+    Departamento("15", "Boyacá", True, 5.5353, -73.3678),              # Tunja
+    Departamento("17", "Caldas", True, 5.0703, -75.5138),              # Manizales
+    Departamento("18", "Caquetá", True, 1.6144, -75.6062),             # Florencia
+    Departamento("19", "Cauca", True, 2.4448, -76.6147),               # Popayán
+    Departamento("20", "Cesar", True, 10.4631, -73.2532),              # Valledupar
+    Departamento("23", "Córdoba", True, 8.7479, -75.8814),             # Montería
+    # La capital de Cundinamarca es Bogotá, que aquí es un departamento aparte.
+    # Se usa Soacha, su municipio más poblado, para no medir el mismo punto dos
+    # veces y atribuirle a Cundinamarca el clima del Distrito Capital.
+    Departamento("25", "Cundinamarca", True, 4.5794, -74.2168),        # Soacha
+    Departamento("27", "Chocó", True, 5.6919, -76.6583),               # Quibdó
+    Departamento("41", "Huila", True, 2.9273, -75.2819),               # Neiva
+    Departamento("44", "La Guajira", True, 11.5444, -72.9072),         # Riohacha
+    Departamento("47", "Magdalena", True, 11.2408, -74.1990),          # Santa Marta
+    Departamento("50", "Meta", True, 4.1420, -73.6266),                # Villavicencio
+    Departamento("52", "Nariño", True, 1.2136, -77.2811),              # Pasto
+    Departamento("54", "Norte de Santander", True, 7.8939, -72.5078),  # Cúcuta
+    Departamento("63", "Quindío", True, 4.5339, -75.6811),             # Armenia
+    Departamento("66", "Risaralda", True, 4.8133, -75.6961),           # Pereira
+    Departamento("68", "Santander", True, 7.1193, -73.1227),           # Bucaramanga
+    Departamento("70", "Sucre", True, 9.3047, -75.3978),               # Sincelejo
+    Departamento("73", "Tolima", True, 4.4389, -75.2322),              # Ibagué
+    Departamento("76", "Valle del Cauca", True, 3.4516, -76.5320),     # Cali
+    Departamento("81", "Arauca", True, 7.0844, -70.7591),              # Arauca
+    Departamento("85", "Casanare", True, 5.3378, -72.3959),            # Yopal
+    Departamento("86", "Putumayo", True, 1.1519, -76.6483),            # Mocoa
+    Departamento("88", "San Andrés y Providencia", False, 12.5847, -81.7006),
+    Departamento("91", "Amazonas", False, -4.2153, -69.9406),          # Leticia
+    Departamento("94", "Guainía", False, 3.8653, -67.9239),            # Inírida
+    Departamento("95", "Guaviare", True, 2.5729, -72.6459),            # San José del Guaviare
+    Departamento("97", "Vaupés", False, 1.2518, -70.2340),             # Mitú
+    Departamento("99", "Vichada", False, 6.1890, -67.4859),            # Puerto Carreño
 )
 
 POR_CODIGO: dict[str, Departamento] = {d.codigo: d for d in DEPARTAMENTOS}

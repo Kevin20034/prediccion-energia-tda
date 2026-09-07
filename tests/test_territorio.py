@@ -33,6 +33,32 @@ class TestCatalogo:
         zni = {d.codigo for d in DEPARTAMENTOS if not d.interconectado}
         assert zni == {"88", "91", "94", "97", "99"}
 
+
+class TestCoordenadas:
+    """Sin coordenada no hay clima: Open-Meteo se consulta por latitud/longitud."""
+
+    def test_todos_tienen_coordenada(self):
+        for d in DEPARTAMENTOS:
+            assert d.latitud, f"{d.nombre} sin latitud"
+            assert d.longitud, f"{d.nombre} sin longitud"
+
+    def test_las_coordenadas_caen_dentro_de_colombia(self):
+        """Una latitud y una longitud intercambiadas al teclear caen fuera y se ven aquí.
+
+        El rectángulo va de Leticia (−4,2 S) a San Andrés (12,6 N / 81,7 O), que
+        son los extremos sur y noroeste del país.
+        """
+        for d in DEPARTAMENTOS:
+            assert -4.3 <= d.latitud <= 13.5, f"{d.nombre}: latitud {d.latitud} fuera de Colombia"
+            assert -82.0 <= d.longitud <= -66.8, (
+                f"{d.nombre}: longitud {d.longitud} fuera de Colombia"
+            )
+
+    def test_no_hay_coordenadas_repetidas(self):
+        """Dos departamentos con el mismo punto significan una fila copiada y no corregida."""
+        puntos = [(d.latitud, d.longitud) for d in DEPARTAMENTOS]
+        assert len(set(puntos)) == len(puntos)
+
     def test_los_mercados_multidepartamentales_se_marcan_estimados(self):
         assert es_estimado("CARIBE MAR")
         assert es_estimado("BOGOTA - CUNDINAMARCA")
