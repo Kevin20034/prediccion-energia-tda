@@ -12,6 +12,7 @@ import {
 } from "recharts";
 
 import * as api from "../api";
+import ComoFuncionan from "../componentes/ComoFuncionan";
 import { Cargando, Conmutador, Panel, Vacio, Veredicto } from "../componentes/ui";
 import { decimales, fechaHora } from "../formato";
 import { COLOR, EJE, FAMILIAS } from "../tokens";
@@ -90,10 +91,11 @@ export default function Modelos({ puedeOperar, alFallar, alAvisar }) {
           <div className="rotulo">Analítica predictiva</div>
           <h1 className="seccion__titulo">Comparación de modelos</h1>
           <p className="seccion__nota">
-            Nueve modelos de cinco familias compiten en cada horizonte. La fila de
-            referencia es el <b>pronóstico ingenuo estacional</b>, que se limita a repetir
-            el ciclo anterior: un modelo que no le gane no justifica su complejidad, por
-            alto que sea su R².
+            Compiten los modelos de producción; el catálogo completo son nueve de
+            cinco familias, y se entrenan todos con <code>--todos-los-modelos</code>.
+            La fila de referencia es el <b>pronóstico ingenuo estacional</b>, que se
+            limita a repetir el ciclo anterior: un modelo que no le gane no justifica
+            su complejidad, por alto que sea su R².
           </p>
         </div>
 
@@ -112,6 +114,12 @@ export default function Modelos({ puedeOperar, alFallar, alAvisar }) {
           />
         </div>
       </header>
+
+      {/* La explicación va antes que los números: sin saber qué compite, la
+          tabla es una lista de nombres con decimales al lado. Se alimenta de
+          todas las filas del lote y no de las del horizonte activo, para que
+          las tarjetas no cambien al mover el conmutador de plazo. */}
+      <ComoFuncionan filas={comparacion?.filas ?? []} />
 
       {ganador && (
         <div style={{ marginBottom: 16 }}>

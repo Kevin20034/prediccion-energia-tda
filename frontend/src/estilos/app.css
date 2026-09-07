@@ -1048,3 +1048,142 @@
     display: none;
   }
 }
+
+/* ===========================================================================
+   Cómo funcionan los modelos (sección Modelos)
+
+   Bloque de lectura, no de datos: por eso va sobre el panel elevado y con
+   medida de línea acotada. Compite en la misma pantalla que una tabla densa,
+   así que necesita respirar más que ella.
+   =========================================================================== */
+.explicacion {
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-g);
+  padding: 20px 22px 18px;
+  margin-bottom: 16px;
+}
+
+.explicacion__titulo {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  color: var(--tinta);
+}
+
+.explicacion__entrada {
+  color: var(--tinta-2);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 72ch;
+  margin: 0 0 18px;
+}
+
+/* --- El recorrido del dato ------------------------------------------------ */
+.recorrido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+
+.recorrido__paso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recorrido__caja {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--panel-alto);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 8px 12px;
+}
+
+.recorrido__nombre {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tinta);
+  white-space: nowrap;
+}
+
+.recorrido__detalle {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  color: var(--tinta-3);
+  white-space: nowrap;
+}
+
+.recorrido__flecha {
+  width: 24px;
+  height: 8px;
+  flex: none;
+}
+
+/* --- Una tarjeta por familia --------------------------------------------- */
+.explicacion__tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+.explicacion__tarjeta {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* El punto lleva el color de la familia: el mismo que su barra en la tabla y
+   su marca en la gráfica de RMSE, para que se puedan cruzar de un vistazo. */
+.explicacion__punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 5px;
+}
+
+.explicacion__nombre {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  color: var(--tinta);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.explicacion__lema {
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--tinta-3);
+}
+
+.explicacion__cuerpo {
+  color: var(--tinta-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.explicacion__nota {
+  color: var(--tinta-2);
+  font-size: 12.5px;
+  line-height: 1.55;
+  max-width: 72ch;
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--linea);
+}
+
+.explicacion__nota strong {
+  color: var(--tinta);
+}
