@@ -9,6 +9,8 @@ pero invalidaría cualquier cifra territorial del trabajo de grado.
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pandas as pd
 import pytest
 
@@ -32,6 +34,47 @@ class TestCatalogo:
         # Códigos DANE de los cinco departamentos que no están en el SIN.
         zni = {d.codigo for d in DEPARTAMENTOS if not d.interconectado}
         assert zni == {"88", "91", "94", "97", "99"}
+
+
+class TestVigencias:
+    """XM reorganiza mercados, y el histórico no puede reescribirse por ello.
+
+    El 1 de septiembre de 2026 XM sacó CESAR como mercado propio: Caribe Mar cayó
+    unos 4,5 GWh/día y Cesar subió 4,2, con la suma intacta. Aplicar los pesos
+    nuevos a los tres años anteriores dejaría a Cesar casi en cero en todo el
+    histórico; seguir con los viejos le atribuiría el doble desde septiembre.
+    """
+
+    CORTE = date(2026, 9, 1)
+
+    def test_cesar_es_mercado_propio(self):
+        assert departamentos_de("CESAR", self.CORTE) == (("20", 1.0),)
+
+    def test_antes_del_corte_caribe_mar_incluye_cesar(self):
+        pesos = dict(departamentos_de("CARIBE MAR", self.CORTE - timedelta(days=1)))
+        assert pesos["20"] == pytest.approx(0.21)
+
+    def test_desde_el_corte_caribe_mar_ya_no_incluye_cesar(self):
+        pesos = dict(departamentos_de("CARIBE MAR", self.CORTE))
+        assert "20" not in pesos
+        assert sum(pesos.values()) == pytest.approx(1.0)
+
+    def test_sin_fecha_se_usa_el_reparto_base(self):
+        """Compatibilidad: quien no pase fecha sigue obteniendo la tabla original."""
+        pesos = dict(departamentos_de("CARIBE MAR"))
+        assert pesos["20"] == pytest.approx(0.21)
+
+    def test_el_reparto_conserva_la_energia_a_ambos_lados_del_corte(self):
+        """La conservación no puede depender de en qué era caiga la hora."""
+        for momento in (self.CORTE - timedelta(days=1), self.CORTE):
+            crudo = pd.DataFrame(
+                [
+                    {"fecha_hora": pd.Timestamp(momento), "mercado": "CARIBE MAR", "demanda_kwh": 1_000.0},
+                    {"fecha_hora": pd.Timestamp(momento), "mercado": "CESAR", "demanda_kwh": 250.0},
+                ]
+            )
+            conserva, error = verificar_conservacion(crudo, repartir(crudo))
+            assert conserva, f"{momento}: error relativo {error:.2e}"
 
 
 class TestCoordenadas:

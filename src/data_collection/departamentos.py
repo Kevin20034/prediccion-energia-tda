@@ -4,9 +4,10 @@ El problema que resuelve este módulo
 ------------------------------------
 
 La API pública de XM **no tiene entidad "Departamento"**. Lo más cercano es
-``DemaCome`` desagregada por ``MercadoComercializacion``: 29 mercados de
-comercialización cuya delimitación es *administrativa*, no política. La mayoría
-coincide con un departamento (ANTIOQUIA, BOYACA, HUILA...), pero unos pocos no:
+``DemaCome`` desagregada por ``MercadoComercializacion``: una treintena de
+mercados de comercialización cuya delimitación es *administrativa*, no política.
+La mayoría coincide con un departamento (ANTIOQUIA, BOYACA, HUILA...), pero unos
+pocos no:
 
 * ``CARIBE MAR`` y ``CARIBE SOL`` cubren cuatro y tres departamentos
   respectivamente (son los dos operadores que heredaron el área de la antigua
@@ -20,6 +21,11 @@ coincide con un departamento (ANTIOQUIA, BOYACA, HUILA...), pero unos pocos no:
   un departamento que ya tiene otro mercado: se **suman** al mismo destino.
 
 Por eso el reparto se hace con pesos explícitos y no ocultos en una consulta.
+
+Además, XM **reorganiza sus mercados**: en septiembre de 2026 sacó ``CESAR`` de
+``CARIBE MAR``. Un cambio así no se puede aplicar hacia atrás sin falsear el
+histórico, así que los pesos tienen vigencia (ver ``CAMBIOS``): cada hora se
+reparte con la estructura de mercado que existía ese día.
 
 Honestidad del dato
 -------------------
@@ -43,6 +49,7 @@ SIN", nunca con demanda cero, que sugeriría que no consumen energía.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 
 # ---------------------------------------------------------------------------
 # Catálogo DANE
@@ -152,21 +159,70 @@ REPARTO: dict[str, tuple[tuple[str, float], ...]] = {
     # EMCALI: Cali y Yumbo están en Valle; Puerto Tejada, en Cauca.
     "CALI - YUMBO - PUERTO TEJADA": (("76", 0.97), ("19", 0.03)),
     # Caribemar (Afinia): Bolívar, Córdoba, Cesar y Sucre.
+    # Ojo: desde el 1 de septiembre de 2026 Cesar sale de aquí. Ver `CAMBIOS`.
     "CARIBE MAR": (("13", 0.38), ("23", 0.26), ("20", 0.21), ("70", 0.15)),
     # Air-e: Atlántico, Magdalena y La Guajira.
     "CARIBE SOL": (("08", 0.60), ("47", 0.25), ("44", 0.15)),
+    # Mercado propio desde agosto de 2026, cuando XM empezó a separarlo de
+    # Caribe Mar. Atribución directa: coincide con el departamento.
+    "CESAR": (("20", 1.0),),
+}
+
+#: Reorganizaciones del mercado publicadas por XM: desde qué fecha rigen otros
+#: pesos para un mercado.
+#:
+#: Hace falta porque XM reorganiza y el histórico **no se puede reescribir por
+#: ello**. Si un cambio de 2026 se aplicara hacia atrás, los tres años anteriores
+#: quedarían repartidos con una estructura de mercado que entonces no existía, y
+#: el mapa histórico del trabajo de grado mostraría cifras que nunca fueron.
+#:
+#: Cada entrada va ordenada por fecha y se elige la última cuya fecha ya pasó.
+CAMBIOS: dict[str, tuple[tuple[date, tuple[tuple[str, float], ...]], ...]] = {
+    # XM sacó CESAR como mercado propio. Los datos diarios lo muestran sin
+    # ambigüedad: el 1 de septiembre de 2026 Caribe Mar cae de ~18,4 a ~13,7
+    # GWh/día y Cesar sube de ~0,5 a ~4,2, con la suma de los dos intacta. Es
+    # una migración de clientes, no demanda nueva.
+    #
+    # Los pesos que quedan son los tres originales renormalizados sobre 0,79:
+    # 0,38/0,79 = 0,481 · 0,26/0,79 = 0,329 · 0,15/0,79 = 0,190.
+    "CARIBE MAR": (
+        (date(2026, 9, 1), (("13", 0.481), ("23", 0.329), ("70", 0.190))),
+    ),
 }
 
 #: Mercados cuyo valor por departamento es una estimación y no una atribución
-#: directa. La interfaz los señala explícitamente.
+#: directa. La interfaz los señala explícitamente. Se considera repartido el
+#: mercado que lo sea en **alguna** de sus vigencias: la marca acompaña a la fila
+#: y no puede depender de la era sin recalcularla en cada consulta.
 MERCADOS_REPARTIDOS: frozenset[str] = frozenset(
-    mercado for mercado, pesos in REPARTO.items() if len(pesos) > 1
+    mercado
+    for mercado in REPARTO
+    if len(REPARTO[mercado]) > 1
+    or any(len(pesos) > 1 for _, pesos in CAMBIOS.get(mercado, ()))
 )
 
 
-def departamentos_de(mercado: str) -> tuple[tuple[str, float], ...]:
-    """Devuelve el reparto de un mercado. Tupla vacía si no está catalogado."""
-    return REPARTO.get(mercado.strip().upper(), ())
+def departamentos_de(
+    mercado: str, fecha: date | None = None
+) -> tuple[tuple[str, float], ...]:
+    """Devuelve el reparto de un mercado. Tupla vacía si no está catalogado.
+
+    Args:
+        mercado: nombre tal como lo publica XM.
+        fecha: día al que corresponde el dato. Sin ella se devuelve el reparto
+            base, que es el vigente al principio de la serie.
+    """
+    clave = mercado.strip().upper()
+    base = REPARTO.get(clave, ())
+
+    if fecha is None or clave not in CAMBIOS:
+        return base
+
+    vigente = base
+    for desde, pesos in CAMBIOS[clave]:
+        if fecha >= desde:
+            vigente = pesos
+    return vigente
 
 
 def es_estimado(mercado: str) -> bool:
@@ -185,18 +241,41 @@ def validar_reparto() -> list[str]:
     problemas: list[str] = []
 
     for mercado, pesos in REPARTO.items():
-        total = sum(peso for _, peso in pesos)
-        if abs(total - 1.0) > 1e-6:
-            problemas.append(f"{mercado}: los pesos suman {total:.4f}, no 1.0")
+        problemas += _revisar(mercado, pesos)
 
-        for codigo, peso in pesos:
-            if codigo not in POR_CODIGO:
-                problemas.append(f"{mercado}: código DANE desconocido '{codigo}'")
-            elif not POR_CODIGO[codigo].interconectado:
-                problemas.append(
-                    f"{mercado}: apunta a {POR_CODIGO[codigo].nombre}, marcado como ZNI"
-                )
-            if peso <= 0:
-                problemas.append(f"{mercado}/{codigo}: peso no positivo ({peso})")
+    # Las vigencias se revisan igual: un cambio con pesos que no sumen 1 rompería
+    # la conservación solo a partir de su fecha, y el fallo aparecería semanas
+    # después de escribirlo.
+    for mercado, cambios in CAMBIOS.items():
+        if mercado not in REPARTO:
+            problemas.append(f"{mercado}: tiene vigencias pero no está en REPARTO")
+
+        fechas = [desde for desde, _ in cambios]
+        if fechas != sorted(fechas):
+            problemas.append(f"{mercado}: las vigencias no están ordenadas por fecha")
+
+        for desde, pesos in cambios:
+            problemas += _revisar(f"{mercado} (desde {desde})", pesos)
+
+    return problemas
+
+
+def _revisar(etiqueta: str, pesos: tuple[tuple[str, float], ...]) -> list[str]:
+    """Comprueba un juego de pesos: que sume 1 y apunte a departamentos válidos."""
+    problemas: list[str] = []
+
+    total = sum(peso for _, peso in pesos)
+    if abs(total - 1.0) > 1e-6:
+        problemas.append(f"{etiqueta}: los pesos suman {total:.4f}, no 1.0")
+
+    for codigo, peso in pesos:
+        if codigo not in POR_CODIGO:
+            problemas.append(f"{etiqueta}: código DANE desconocido '{codigo}'")
+        elif not POR_CODIGO[codigo].interconectado:
+            problemas.append(
+                f"{etiqueta}: apunta a {POR_CODIGO[codigo].nombre}, marcado como ZNI"
+            )
+        if peso <= 0:
+            problemas.append(f"{etiqueta}/{codigo}: peso no positivo ({peso})")
 
     return problemas

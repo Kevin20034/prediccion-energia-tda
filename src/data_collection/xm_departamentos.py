@@ -125,7 +125,11 @@ def repartir(por_mercado: pd.DataFrame) -> pd.DataFrame:
 
     filas: list[dict] = []
     for fila in por_mercado.itertuples(index=False):
-        for codigo, peso in departamentos_de(fila.mercado):
+        # El reparto se consulta con la fecha de la fila, no con la de hoy: XM
+        # reorganiza sus mercados y cada hora debe repartirse con la estructura
+        # que existía ese día. Ver `departamentos.CAMBIOS`.
+        dia = pd.Timestamp(fila.fecha_hora).date()
+        for codigo, peso in departamentos_de(fila.mercado, dia):
             filas.append(
                 {
                     "fecha_hora": fila.fecha_hora,
