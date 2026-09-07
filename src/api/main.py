@@ -8,17 +8,20 @@ Documentación interactiva en http://127.0.0.1:8000/docs
 
 from __future__ import annotations
 
+import asyncio
 import threading
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
+from src.api.planificador import planificador
 from src.api.routers import (
     auth,
     datos,
     entrenar,
+    estado,
     panorama,
     predicciones,
     territorio,
@@ -102,10 +105,42 @@ async def lifespan(app: FastAPI):
     calentamiento = threading.Thread(target=_precargar_modelos, daemon=True)
     calentamiento.start()
 
+    # Ingesta automática. Apagada por defecto: encenderla en dos procesos a la
+    # vez —o con `--reload`, que levanta dos— haría que ambos descargasen lo
+    # mismo en paralelo.
+    tarea_ingesta = None
+    if settings.INGESTA_AUTOMATICA:
+        _registrar_trabajos()
+        tarea_ingesta = asyncio.create_task(planificador.ciclo())
+    else:
+        log.info("Ingesta automatica desactivada (INGESTA_AUTOMATICA=false)")
+
     yield
+
+    if tarea_ingesta is not None:
+        tarea_ingesta.cancel()
+        with suppress(asyncio.CancelledError):
+            await tarea_ingesta
 
     engine.dispose()
     log.info("API detenida")
+
+
+def _registrar_trabajos() -> None:
+    """Da de alta las fuentes que el planificador debe mantener al día.
+
+    Se importa aquí dentro y no arriba porque estos módulos arrastran pandas y
+    los clientes de red: cargarlos al importar la API retrasaría el arranque
+    incluso cuando la ingesta automática está apagada, que es lo habitual.
+    """
+    from src.api.trabajos_ingesta import TRABAJOS
+
+    planificador.trabajos = list(TRABAJOS)
+    log.info(
+        "Ingesta automatica activada cada %d min · fuentes: %s",
+        settings.INGESTA_INTERVALO_MINUTOS,
+        ", ".join(nombre for nombre, _ in TRABAJOS),
+    )
 
 
 app = FastAPI(
@@ -130,6 +165,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(panorama.router)
 app.include_router(datos.router)
+app.include_router(estado.router)
 app.include_router(entrenar.router)
 app.include_router(predicciones.router)
 app.include_router(territorio.router)

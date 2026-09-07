@@ -54,6 +54,16 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
 
+    # --- Ingesta automática ------------------------------------------------
+    #: Apagada por defecto **a propósito**. Encendida, cada `pytest`, cada script
+    #: y cada arranque con `--reload` dispararía descargas reales contra XM y
+    #: Open-Meteo. Se enciende en el despliegue que deba mantenerse al día, y
+    #: solo en uno: dos procesos con esto activo ingieren en paralelo.
+    INGESTA_AUTOMATICA: bool = False
+    #: XM publica una vez por hora en el mejor de los casos; revisar más a
+    #: menudo solo gasta cuota de la API para traer lo mismo.
+    INGESTA_INTERVALO_MINUTOS: int = 60
+
     # --- Derivados ---------------------------------------------------------
     @property
     def url_migraciones(self) -> str:
