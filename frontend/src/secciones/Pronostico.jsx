@@ -203,7 +203,7 @@ export default function Pronostico({ puedeOperar, alFallar, alAvisar }) {
                   alCambiarForma={setForma}
                   contenedor={contenedorGrafica}
                   nombre={`${objetivo}-${horizonte}h`}
-                  tituloInforme={`Pronóstico ${objetivo} ${horizonte}h · SIN · TdeA`}
+                  tituloInforme={`Pronóstico ${objetivo} ${horizonte}h · Predicción Energía TdeA`}
                   datosCSV={filasCSV}
                   columnasCSV={COLUMNAS_CSV}
                   alFallar={alAvisar}

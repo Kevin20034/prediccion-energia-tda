@@ -47,12 +47,6 @@
   50% { box-shadow: 0 0 0 6px rgba(140, 198, 63, 0); }
 }
 
-.barra__sitio {
-  color: var(--tinta-3);
-  font-weight: 400;
-  font-size: 12px;
-}
-
 .barra__usuario {
   text-align: right;
   line-height: 1.25;

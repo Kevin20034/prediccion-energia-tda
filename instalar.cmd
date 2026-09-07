@@ -15,7 +15,7 @@ cd /d "%~dp0"
 
 echo.
 echo  ============================================================
-echo   Pronostico energetico SIN - Tecnologico de Antioquia
+echo   Prediccion Energia TdeA
 echo   Instalacion
 echo  ============================================================
 echo.

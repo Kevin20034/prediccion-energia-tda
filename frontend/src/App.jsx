@@ -148,14 +148,14 @@ export default function App() {
     <>
       <header className="barra">
         <div className="barra__fila">
-          {/* El logo dice de quién es esto mejor que el texto que había
-              aquí, y deja sitio para que "SIN" sea lo que nombra la
+          {/* El logo dice de quién es esto mejor que cualquier texto; al lado,
+              el nombre de la aplicación y nada más. Antes convivían aquí dos
+              nombres ("SIN" y "Pronóstico energético") y ninguno era el de la
               aplicación. */}
           <LogoTdeA tamano="barra" />
           <span className="barra__marca">
             <i className="barra__pulso" aria-hidden="true" />
-            SIN
-            <span className="barra__sitio">Pronóstico energético</span>
+            Predicción Energía TdeA
           </span>
 
           <nav className="pestanas" aria-label="Secciones">

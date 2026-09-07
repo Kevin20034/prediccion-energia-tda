@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="API — Predicción del precio de la energía (TdeA)",
+    title="API — Predicción Energía TdeA",
     description=DESCRIPCION,
     version="0.1.0",
     lifespan=lifespan,

@@ -152,8 +152,10 @@ export default function Inicio({ alFallar, alAvisar, alIrAlMapa }) {
       <header className="cabecera-informe">
         <LogoTdeA tamano="informe" conPlaca={false} />
         <div>
-          <div className="rotulo">Sistema Interconectado Nacional</div>
-          <strong>Informe de pronóstico energético</strong>
+          {/* El alcance de los datos (el SIN) ya lo dice el pie del informe;
+              aquí arriba va el nombre de la aplicación y qué documento es. */}
+          <div className="rotulo">Predicción Energía TdeA</div>
+          <strong>Informe de pronóstico</strong>
         </div>
       </header>
 
@@ -226,7 +228,7 @@ export default function Inicio({ alFallar, alAvisar, alIrAlMapa }) {
                 alCambiarForma={setForma}
                 contenedor={contenedorGrafica}
                 nombre={`${esPrecio ? "precio" : "demanda"}-${elegido?.etiqueta ?? ""}`}
-                tituloInforme={`Pronóstico de ${esPrecio ? "precio" : "demanda"} · SIN · TdeA`}
+                tituloInforme={`Pronóstico de ${esPrecio ? "precio" : "demanda"} · Predicción Energía TdeA`}
                 datosCSV={filasCSV}
                 columnasCSV={COLUMNAS_CSV}
                 alFallar={alAvisar}
@@ -275,7 +277,7 @@ export default function Inicio({ alFallar, alAvisar, alIrAlMapa }) {
           salió y con qué datos, o dentro de un mes nadie sabrá qué está
           mirando ni si sigue vigente. */}
       <p className="pie-informe">
-        Sistema Interconectado Nacional · Tecnológico de Antioquia. Datos de XM
+        Predicción Energía TdeA. Datos de XM del Sistema Interconectado Nacional
         con corte a {fechaHora(panorama.instante)}. Generado el{" "}
         {fechaHora(new Date().toISOString())}. Los valores pronosticados son
         estimaciones de un modelo estadístico, no mediciones.

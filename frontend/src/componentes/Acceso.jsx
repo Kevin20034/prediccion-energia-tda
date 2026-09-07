@@ -59,7 +59,7 @@ export default function Acceso({ alEntrar }) {
           <LogoTdeA tamano="tarjeta" />
         </div>
         <h1 className="acceso__marca emerge" style={escalonado(2)}>
-          Sistema <em>Interconectado</em> Nacional
+          Predicción <em>Energía</em> TdeA
         </h1>
         <p className="acceso__sub emerge" style={escalonado(3)}>
           Pronóstico del precio de bolsa y de la demanda, con datos horarios de XM.
