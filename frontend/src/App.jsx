@@ -6,6 +6,7 @@ import Frescura from "./componentes/Frescura";
 import LogoTdeA from "./componentes/LogoTdeA";
 import { Aviso, Cargando } from "./componentes/ui";
 import Datos from "./secciones/Datos";
+import FenomenoNino from "./secciones/FenomenoNino";
 import Inicio from "./secciones/Inicio";
 import Mapa from "./secciones/Mapa";
 import Modelos from "./secciones/Modelos";
@@ -29,6 +30,7 @@ import Pronostico from "./secciones/Pronostico";
 const SECCIONES = [
   { clave: "inicio", etiqueta: "Inicio", Componente: Inicio, acceso: "todos" },
   { clave: "mapa", etiqueta: "Mapa", Componente: Mapa, acceso: "todos" },
+  { clave: "nino", etiqueta: "Fenómeno del Niño", Componente: FenomenoNino, acceso: "todos" },
   { clave: "pronostico", etiqueta: "Detalle", Componente: Pronostico, acceso: "operador" },
   { clave: "datos", etiqueta: "Datos", Componente: Datos, acceso: "operador" },
   { clave: "modelos", etiqueta: "Modelos", Componente: Modelos, acceso: "admin" },

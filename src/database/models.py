@@ -344,6 +344,43 @@ class DemandaDepartamento(Base):
         return f"<Demanda {self.departamento} {self.fecha_hora:%Y-%m-%d %H:%M}>"
 
 
+class ClimaDepartamento(Base):
+    """Clima horario en la capital de cada departamento.
+
+    Se mide en la capital y no en el centroide geométrico porque el clima solo
+    interesa aquí en la medida en que explica consumo, y el consumo está donde
+    está la gente: el centroide del Chocó cae en selva deshabitada.
+
+    Alimenta el mapa del fenómeno del Niño. La anomalía —cuánto se aparta la
+    temperatura de lo normal en ese departamento y ese mes— **no se guarda**: se
+    calcula al consultar, con `clima_departamentos.anomalia_mensual`. Guardarla
+    obligaría a recalcular la tabla entera cada vez que llegan datos nuevos,
+    porque cada hora nueva mueve la normal de su mes.
+    """
+
+    __tablename__ = "clima_departamento"
+    __table_args__ = (
+        UniqueConstraint("fecha_hora", "codigo_dane", name="uq_clima_depto_hora"),
+        Index("ix_clima_depto_fecha", "fecha_hora"),
+        Index("ix_clima_depto_codigo", "codigo_dane"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    codigo_dane: Mapped[str] = mapped_column(String(2), nullable=False)
+    departamento: Mapped[str] = mapped_column(String(60), nullable=False)
+    temperatura: Mapped[float | None] = mapped_column(Float, comment="°C")
+    precipitacion: Mapped[float | None] = mapped_column(Float, comment="mm")
+    humedad_relativa: Mapped[float | None] = mapped_column(Float, comment="%")
+
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Clima {self.departamento} {self.fecha_hora:%Y-%m-%d %H:%M}>"
+
+
 class ProyeccionUPME(Base):
     """Escenario mensual de demanda nacional proyectada por la UPME."""
 

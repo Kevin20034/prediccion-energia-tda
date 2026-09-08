@@ -22,7 +22,13 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from src.core.logging import get_logger
-from src.database.models import Base, DatoHistorico, DemandaDepartamento, ProyeccionUPME
+from src.database.models import (
+    Base,
+    ClimaDepartamento,
+    DatoHistorico,
+    DemandaDepartamento,
+    ProyeccionUPME,
+)
 
 log = get_logger(__name__)
 
@@ -46,6 +52,19 @@ def guardar_demanda_departamento(db: Session, df: pd.DataFrame) -> tuple[int, in
 
     preparado = df.rename(columns={"estimado": "factor_estimado"})
     return _guardar(db, preparado, DemandaDepartamento, ["fecha_hora", "codigo_dane"])
+
+
+def guardar_clima_departamento(db: Session, df: pd.DataFrame) -> tuple[int, int]:
+    """Inserta o actualiza el clima horario por departamento.
+
+    Espera las columnas que produce `clima_departamentos.ClimaDepartamentosClient`.
+    Si el `DataFrame` trae `media_mensual` o `anomalia`, `_guardar` las descarta
+    sola: son derivadas y se recalculan al consultar.
+    """
+    if df.empty:
+        return 0, 0
+
+    return _guardar(db, df, ClimaDepartamento, ["fecha_hora", "codigo_dane"])
 
 
 def guardar_proyeccion_upme(db: Session, df: pd.DataFrame) -> tuple[int, int]:

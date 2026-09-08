@@ -82,6 +82,34 @@ export const RAMPA_MAPA = [
 
 export const COLOR_SIN_DATO = "#1a231f";
 
+/**
+ * Rampa divergente de la anomalía de temperatura.
+ *
+ * La anomalía no es una magnitud, es una desviación: tiene un cero con
+ * significado —lo normal— y dos direcciones. La rampa secuencial de la demanda
+ * la contaría mal, porque haría que "tres grados por debajo" y "lo normal" se
+ * pintaran igual de apagados y solo destacara el calor.
+ *
+ * Frío y calor son azul y ámbar, no rojo y verde: el par rojo-verde es la
+ * confusión cromática más común y borraría justo la distinción que este mapa
+ * existe para mostrar. Validado con el comprobador de la guía de visualización:
+ * cada mitad pasa como rampa de un solo tono (luminosidad monótona, saltos
+ * visibles, contraste contra el fondo) y los dos polos se separan con ΔE 17,0
+ * en protanopía, muy por encima del umbral de 8.
+ *
+ * La luminosidad crece hacia los extremos: sobre fondo oscuro, lo normal
+ * retrocede y lo anómalo brilla, que es el orden de lectura que se busca.
+ */
+export const RAMPA_ANOMALIA = [
+  "#9ad8f7", // −3 · mucho más frío de lo normal
+  "#6fb8e4",
+  "#4f93bd",
+  "#5f6d66", // 0 · en su normal
+  "#c2853f",
+  "#e0a94f",
+  "#f8cd76", // +3 · mucho más cálido de lo normal
+];
+
 /** Familias de modelos, para agrupar la comparación. */
 export const FAMILIAS = {
   referencia: { etiqueta: "Referencia", color: COLOR.tinta3 },

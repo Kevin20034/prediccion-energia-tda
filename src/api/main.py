@@ -22,6 +22,7 @@ from src.api.routers import (
     datos,
     entrenar,
     estado,
+    nino,
     panorama,
     predicciones,
     territorio,
@@ -166,6 +167,7 @@ app.include_router(auth.router)
 app.include_router(panorama.router)
 app.include_router(datos.router)
 app.include_router(estado.router)
+app.include_router(nino.router)
 app.include_router(entrenar.router)
 app.include_router(predicciones.router)
 app.include_router(territorio.router)

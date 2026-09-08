@@ -1245,3 +1245,200 @@
     display: none;
   }
 }
+
+/* ===========================================================================
+   Fenómeno del Niño
+   =========================================================================== */
+
+/* --- Titular de estado ---------------------------------------------------- */
+.nino-estado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-g);
+  padding: 20px 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* El filo lateral lleva el color de la fase: cálido para El Niño, frío para La
+   Niña, neutro cuando no hay fenómeno. Es la misma pareja de la rampa del mapa,
+   para que la sección se lea con un solo código de color. */
+.nino-estado::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--linea-fuerte);
+}
+
+.nino-estado--el_nino::before { background: #e0a94f; }
+.nino-estado--la_nina::before { background: #6fb8e4; }
+.nino-estado--neutro::before  { background: #5f6d66; }
+
+.nino-estado__titular {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin: 4px 0 8px;
+  line-height: 1.2;
+}
+
+.nino-estado--el_nino .nino-estado__titular em { color: #f8cd76; font-style: normal; }
+.nino-estado--la_nina .nino-estado__titular em { color: #9ad8f7; font-style: normal; }
+.nino-estado--neutro  .nino-estado__titular em { color: var(--tinta-2); font-style: normal; }
+
+.nino-estado__texto {
+  color: var(--tinta-2);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.nino-estado__cifra {
+  text-align: right;
+  flex: none;
+}
+
+.nino-estado__pie {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+  margin-top: 2px;
+}
+
+/* --- El hallazgo ---------------------------------------------------------- */
+/* Va antes de la tabla porque es la conclusión, y la tabla es la evidencia.
+   Al revés, el lector tiene que deducirla solo de seis filas de números. */
+.nino-hallazgo {
+  background: var(--panel-alto);
+  border-left: 3px solid #e0a94f;
+  border-radius: 0 var(--radio) var(--radio) 0;
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tinta-2);
+}
+
+.nino-hallazgo b {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
+/* Tamaño de la muestra, bajo el nombre de la fase. */
+.marca-debil,
+.marca-solida {
+  display: block;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  margin-top: 2px;
+}
+
+.marca-solida {
+  color: var(--tinta-3);
+}
+
+/* La muestra corta se tiñe del ámbar de aviso y lo dice con palabras: un color
+   solo no explica por qué esa fila merece menos confianza. */
+.marca-debil {
+  color: var(--pronostico);
+}
+
+.marca-debil::after {
+  content: " · muestra corta";
+}
+
+/* --- Leyenda divergente --------------------------------------------------- */
+.leyenda-anomalia {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 4px 10px 8px;
+}
+
+.leyenda-anomalia__barra {
+  display: flex;
+  flex: 1;
+  min-width: 140px;
+  height: 9px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.leyenda-anomalia__barra span {
+  flex: 1;
+}
+
+.leyenda-anomalia__extremo {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px;
+  color: var(--tinta-3);
+  white-space: nowrap;
+}
+
+.leyenda-anomalia__nota {
+  width: 100%;
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--tinta-3);
+}
+
+/* --- Serie del ONI -------------------------------------------------------- */
+/* Barras a ambos lados de una línea de cero, porque el ONI es una desviación
+   con signo: una gráfica de barras normal apoyada en el borde inferior
+   escondería que el cero significa algo. */
+.oni {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  height: 120px;
+  padding: 4px 0;
+}
+
+.oni__mes {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 2px;
+}
+
+.oni__mitad {
+  flex: 1;
+  display: flex;
+}
+
+.oni__mitad--arriba { align-items: flex-end; }
+.oni__mitad--abajo  { align-items: flex-start; }
+
+.oni__barra {
+  width: 100%;
+  border-radius: 1px;
+  animation: crecer-oni 0.5s var(--curva) both;
+}
+
+@keyframes crecer-oni {
+  from { height: 0 !important; }
+}
+
+.oni__cero {
+  height: 1px;
+  background: var(--linea-fuerte);
+}
+
+.oni__ejes {
+  display: flex;
+  justify-content: space-between;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 9.5px;
+  color: var(--tinta-3);
+  margin-top: 4px;
+}

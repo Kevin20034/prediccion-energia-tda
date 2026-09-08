@@ -71,7 +71,7 @@ class ClimaClient(Recolector):
 
     def obtener(self, fecha_inicio: date, fecha_fin: date) -> pd.DataFrame:
         """Devuelve temperatura, precipitación, humedad, ONI y fenómeno por hora."""
-        clima = self._descargar_open_meteo(fecha_inicio, fecha_fin)
+        clima = self.descargar_open_meteo(fecha_inicio, fecha_fin)
         if clima.empty:
             log.warning("Open-Meteo no devolvió datos; se continúa sin variables climáticas")
             return clima
@@ -81,7 +81,14 @@ class ClimaClient(Recolector):
 
     # -- Open-Meteo ---------------------------------------------------------
 
-    def _descargar_open_meteo(self, inicio: date, fin: date) -> pd.DataFrame:
+    def descargar_open_meteo(self, inicio: date, fin: date) -> pd.DataFrame:
+        """Solo las variables horarias, sin adjuntar el ONI.
+
+        Es pública porque `clima_departamentos` la necesita tal cual: el ONI es
+        nacional y mensual, así que pedirlo una vez por cada uno de los 33
+        departamentos sería descargar 33 veces lo mismo para escribir la misma
+        columna.
+        """
         params = {
             "latitude": self.latitud,
             "longitude": self.longitud,

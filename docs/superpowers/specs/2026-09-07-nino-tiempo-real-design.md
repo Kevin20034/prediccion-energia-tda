@@ -27,21 +27,31 @@ Comprobaciones hechas contra el repositorio y la base de datos real, no supuesta
 
 Consulta sobre `datos_historicos` agrupando por `fenomeno_climatico`:
 
-| Fase | Horas | Precio medio (COP/kWh) | Demanda media (kWh) | Temp. media (°C) |
-|---|---:|---:|---:|---:|
-| El Niño | 9.504 | 635,3 | 9.429.334 | 21,25 |
-| Neutro | 19.680 | 442,9 | 9.447.625 | 20,65 |
-| La Niña | 2.952 | 259,5 | 9.444.726 | 20,03 |
+| Fase | Horas | Precio medio (COP/kWh) | Demanda media (kWh) |
+|---|---:|---:|---:|
+| El Niño | 10.704 | 660,1 | 9.511.846 |
+| Neutro | 18.576 | 418,8 | 9.405.986 |
+| La Niña | 2.952 | 259,5 | 9.444.726 |
 
-**El Niño multiplica el precio por 2,4 frente a La Niña y lo sube un 43 % sobre
-lo normal, mientras la demanda varía un 0,2 % entre fases.** La sección debe
-contar eso —el fenómeno golpea el precio, no el consumo, porque sin agua entra
-la térmica— y no la intuición de "más calor, más consumo, más precio", que estos
-datos no sostienen.
+**Con El Niño la energía cuesta un 58 % más que en condiciones normales y 2,5
+veces lo que cuesta con La Niña, mientras la demanda se mueve un 1 %.** La
+sección debe contar eso —el fenómeno golpea el precio, no el consumo, porque sin
+agua entra la térmica— y no la intuición de "más calor, más consumo, más
+precio", que estos datos no sostienen.
 
-**Limitación a declarar en pantalla:** La Niña son 123 días y el ONI apenas baja
-a −0,61, rozando el umbral de −0,5. Esa columna se etiqueta como de evidencia
-débil; no se presenta con la misma firmeza que El Niño.
+> **Corregido durante la implementación.** Estas cifras sustituyen a las de la
+> primera versión de este documento (El Niño 635,3 · Neutro 442,9), que salían de
+> una columna corrupta: 1.200 horas con un ONI de 1,39 estaban etiquetadas como
+> `NEUTRO` y entraban en la media equivocada. La causa era que el fenómeno se
+> clasificaba al descargar el clima, antes de que la limpieza rellenara o
+> corrigiera el ONI, y la etiqueta se quedaba con el valor viejo. Se arregló
+> recalculando la etiqueta al final de `limpiar()` y reparando lo ya escrito con
+> `scripts/reparar_fenomeno.py`.
+
+**Limitación a declarar en pantalla:** La Niña son 123 días —cuatro meses
+seguidos—, así que su media es también la media de esos cuatro meses concretos,
+con su estacionalidad de clima y de demanda. Por debajo de un año de muestra la
+fase se etiqueta como de evidencia débil y no se presenta con la misma firmeza.
 
 ---
 

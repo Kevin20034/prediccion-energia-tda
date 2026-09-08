@@ -126,6 +126,14 @@ export const ingerirDepartamentos = (fecha_inicio, fecha_fin) =>
 
 export const escenariosUpme = () => pedir("/upme/escenarios");
 
+// --- Fenómeno del Niño ------------------------------------------------------
+
+export const ninoEstado = () => pedir("/nino/estado");
+
+export const ninoMapa = (horas = 24) => pedir(`/nino/mapa${query({ horas })}`);
+
+export const ninoEfecto = () => pedir("/nino/efecto");
+
 // --- Modelos ---------------------------------------------------------------
 
 export const historicoEntrenamientos = (parametros = {}) =>

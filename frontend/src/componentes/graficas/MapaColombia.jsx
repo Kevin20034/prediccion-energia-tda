@@ -17,11 +17,18 @@ import { COLOR_SIN_DATO, RAMPA_MAPA } from "../../tokens";
  *
  * Escala de color
  * ---------------
- * Rampa secuencial de un solo tono, clara a oscura, porque lo que codifica es
- * magnitud y el ojo lee magnitud en la luminosidad. Los cortes son por
- * **cuantiles** y no lineales: la demanda está tan concentrada (Bogotá y
- * Antioquia solas se llevan una parte enorme) que una escala lineal dejaría
- * veinte departamentos del mismo color más claro y el mapa no diría nada.
+ * Dos escalas, según lo que se esté pintando:
+ *
+ * * `cuantiles` (demanda) — rampa secuencial de un solo tono. Codifica
+ *   magnitud, y el ojo lee magnitud en la luminosidad. Los cortes son por
+ *   cuantiles y no lineales: la demanda está tan concentrada (Bogotá y
+ *   Antioquia solas se llevan una parte enorme) que una escala lineal dejaría
+ *   veinte departamentos del mismo color y el mapa no diría nada.
+ *
+ * * `divergente` (anomalía de temperatura) — rampa de dos tonos con gris
+ *   neutro en el centro, y cortes **simétricos respecto al cero**. La simetría
+ *   no es estética: sin ella, medio grado por encima de lo normal se pintaría
+ *   con la misma intensidad que tres, y el mapa exageraría.
  *
  * Los departamentos sin conexión al SIN se pintan en gris neutro con su propia
  * entrada en la leyenda: no tienen demanda cero, tienen otra fuente de
@@ -30,13 +37,22 @@ import { COLOR_SIN_DATO, RAMPA_MAPA } from "../../tokens";
 
 const ANCHO = 620;
 const ALTO = 700;
-const CORTES = RAMPA_MAPA.length;
 
 export default function MapaColombia({
   geo,
   departamentos = [],
   seleccionado,
   alSeleccionar,
+  /** Campo por el que se colorea. */
+  campo = "demanda_24h",
+  rampa = RAMPA_MAPA,
+  /** `"cuantiles"` para magnitud, `"divergente"` para desviaciones. */
+  escala = "cuantiles",
+  /** Extremo de la escala divergente. Se ignora en modo cuantiles. */
+  extremo = 0,
+  /** Contenido de la etiqueta flotante. Sin ella se muestra la de demanda. */
+  detalle,
+  etiquetaMapa = "Mapa de la demanda energética por departamento de Colombia",
 }) {
   const [flotante, setFlotante] = useState(null);
   const contenedor = useRef(null);
@@ -48,25 +64,37 @@ export default function MapaColombia({
 
   const { proyectar, ancho, alto } = useMemo(() => proyeccionDe(geo), [geo]);
 
-  /** Umbrales por cuantiles sobre los departamentos que sí tienen demanda. */
+  const cortes = rampa.length;
+
+  /** Umbrales que separan los tramos de color. */
   const umbrales = useMemo(() => {
+    if (escala === "divergente") {
+      // Simétricos alrededor del cero. Con un número impar de pasos, el tramo
+      // central queda centrado en cero y es el que se lee como "en su normal".
+      const tope = extremo || 1;
+      const pasos = cortes - 1;
+      return Array.from(
+        { length: pasos },
+        (_, i) => -tope + ((i + 1) * (2 * tope)) / (pasos + 1)
+      );
+    }
+
     const valores = departamentos
-      .map((d) => d.demanda_24h)
+      .map((d) => d[campo])
       .filter((v) => v != null && v > 0)
       .sort((a, b) => a - b);
-    if (valores.length < CORTES) return [];
-    return Array.from({ length: CORTES - 1 }, (_, i) =>
-      valores[Math.floor(((i + 1) / CORTES) * valores.length)]
+    if (valores.length < cortes) return [];
+    return Array.from({ length: cortes - 1 }, (_, i) =>
+      valores[Math.floor(((i + 1) / cortes) * valores.length)]
     );
-  }, [departamentos]);
+  }, [departamentos, campo, escala, extremo, cortes]);
 
-  /** Orden de aparición: de mayor a menor demanda, para que el mapa se lea solo. */
+  /** Orden de aparición, para que el mapa se lea solo al entrar. */
   const orden = useMemo(() => {
-    const lista = [...departamentos]
-      .sort((a, b) => (b.demanda_24h ?? -1) - (a.demanda_24h ?? -1))
-      .map((d) => d.codigo_dane);
+    const clave = escala === "divergente" ? (d) => Math.abs(d[campo] ?? 0) : (d) => d[campo] ?? -1;
+    const lista = [...departamentos].sort((a, b) => clave(b) - clave(a)).map((d) => d.codigo_dane);
     return new Map(lista.map((codigo, i) => [codigo, i]));
-  }, [departamentos]);
+  }, [departamentos, campo, escala]);
 
   // Al pulsar fuera del mapa se cierra la etiqueta flotante; sin esto se queda
   // colgada cuando el puntero sale del SVG por un borde.
@@ -79,10 +107,19 @@ export default function MapaColombia({
   if (!geo) return <div className="cargando">cargando mapa</div>;
 
   function colorDe(dato) {
-    if (!dato || !dato.interconectado) return COLOR_SIN_DATO;
-    if (dato.demanda_24h == null || !umbrales.length) return RAMPA_MAPA[0];
-    const indice = umbrales.filter((u) => dato.demanda_24h > u).length;
-    return RAMPA_MAPA[Math.min(indice, RAMPA_MAPA.length - 1)];
+    if (!dato) return COLOR_SIN_DATO;
+
+    // "No está en el SIN" solo significa algo cuando lo que se pinta es
+    // demanda: esos departamentos no aparecen en ningún mercado de XM. Su
+    // temperatura, en cambio, existe igual que la de los demás, y dejarlos
+    // grises en el mapa de anomalía escondería cinco departamentos por un
+    // motivo que ahí no aplica.
+    if (escala !== "divergente" && !dato.interconectado) return COLOR_SIN_DATO;
+
+    const valor = dato[campo];
+    if (valor == null || !umbrales.length) return COLOR_SIN_DATO;
+    const indice = umbrales.filter((u) => valor > u).length;
+    return rampa[Math.min(indice, rampa.length - 1)];
   }
 
   function alEntrar(evento, dato, nombreGeo) {
@@ -101,12 +138,15 @@ export default function MapaColombia({
       <svg
         viewBox={`0 0 ${ancho} ${alto}`}
         role="img"
-        aria-label="Mapa de la demanda energética por departamento de Colombia"
+        aria-label={etiquetaMapa}
         onMouseLeave={() => setFlotante(null)}
       >
         {geo.features.map((rasgo) => {
           const dato = porCodigo.get(rasgo.properties.codigo);
-          const sinSin = dato && !dato.interconectado;
+          // En el mapa de anomalía las ZNI son departamentos como los demás:
+          // tienen temperatura, se pueden consultar y no llevan la nota de
+          // "no se abastece del SIN", que ahí no viene a cuento.
+          const sinSin = dato && !dato.interconectado && escala !== "divergente";
           const activo = seleccionado === rasgo.properties.codigo;
 
           return (
@@ -131,7 +171,9 @@ export default function MapaColombia({
                   ? `${dato.departamento}: ${
                       sinSin
                         ? "sin conexión al Sistema Interconectado Nacional"
-                        : `${energia(dato.demanda_24h).valor} ${energia(dato.demanda_24h).unidad} en 24 horas`
+                        : escala === "divergente"
+                          ? `${dato[campo] == null ? "sin dato" : `${dato[campo] > 0 ? "+" : ""}${dato[campo]} grados frente a su normal`}`
+                          : `${energia(dato[campo]).valor} ${energia(dato[campo]).unidad} en 24 horas`
                     }`
                   : rasgo.properties.nombre
               }
@@ -161,6 +203,8 @@ export default function MapaColombia({
               <div className="pista__nota" style={{ border: "none", marginTop: 0 }}>
                 Zona No Interconectada: no se abastece del SIN.
               </div>
+            ) : detalle ? (
+              detalle(flotante.dato)
             ) : (
               <>
                 <div className="pista__linea">
