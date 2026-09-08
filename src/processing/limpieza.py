@@ -18,6 +18,7 @@ from __future__ import annotations
 import pandas as pd
 
 from src.core.logging import get_logger
+from src.data_collection.clima_client import clasificar_fenomeno
 from src.data_collection.xm_client import COLUMNAS_XM
 
 log = get_logger(__name__)
@@ -144,6 +145,9 @@ def limpiar(
     if imputar:
         df = _imputar(df)
 
+    # 8. La etiqueta del fenómeno se recalcula al final, siempre
+    df = _reclasificar_fenomeno(df)
+
     df = df.reset_index(drop=True)
     log.info("Limpieza: %d filas de entrada -> %d de salida", filas_inicio, len(df))
     return df
@@ -175,6 +179,30 @@ RATIO_DEMANDA_MINIMO = 0.6
 #: hueco en los extremos de la serie.
 HORAS_DIA = 24
 DIAS_RELLENO_ESTACIONAL = 3
+
+
+def _reclasificar_fenomeno(df: pd.DataFrame) -> pd.DataFrame:
+    """Vuelve a derivar `fenomeno_climatico` del `indice_oni` de la misma fila.
+
+    El fenómeno es una **función del ONI**, no un dato independiente, y aquí es
+    el último sitio donde el ONI puede cambiar. El cliente de clima lo clasifica
+    al descargar, antes de que la limpieza toque nada; si después el ONI se
+    rellena o se corrige, la etiqueta se queda con el valor viejo.
+
+    Eso ya pasó: la base llegó a tener horas marcadas `NEUTRO` con un ONI de
+    1,39, que es El Niño de manual. No era un error cosmético — la sección del
+    fenómeno agrupa por esta columna, así que esas horas entraban en la media
+    equivocada y contaminaban la comparación entre fases.
+
+    Recalcular aquí cuesta una pasada y cierra la puerta a que el número y su
+    etiqueta vuelvan a separarse.
+    """
+    if "indice_oni" not in df.columns:
+        return df
+
+    df = df.copy()
+    df["fenomeno_climatico"] = df["indice_oni"].apply(clasificar_fenomeno)
+    return df
 
 
 def _anular_demanda_preliminar(df: pd.DataFrame) -> pd.DataFrame:
