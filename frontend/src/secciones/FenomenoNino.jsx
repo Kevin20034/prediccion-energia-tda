@@ -18,7 +18,7 @@ import * as api from "../api";
 import { Contador, Revelar } from "../componentes/animacion";
 import MapaColombia from "../componentes/graficas/MapaColombia";
 import { Cargando, Conmutador, Panel, Vacio } from "../componentes/ui";
-import { decimales, energia, fechaHora } from "../formato";
+import { decimales, fechaHora } from "../formato";
 import { COLOR, RAMPA_ANOMALIA } from "../tokens";
 
 const VENTANAS = [
@@ -118,7 +118,6 @@ export default function FenomenoNino({ alFallar }) {
                 escala="divergente"
                 extremo={mapa.anomalia_maxima}
                 etiquetaMapa="Mapa de la anomalía de temperatura por departamento de Colombia"
-                detalle={(d) => <DetalleDepartamento dato={d} />}
               />
               <LeyendaAnomalia extremo={mapa.anomalia_maxima} />
             </>
@@ -224,7 +223,8 @@ function Efecto({ efecto }) {
   return (
     <Panel
       rotulo="Sobre el histórico completo"
-      titulo="Qué le hace al mercado"
+      titulo="Qué le hace a la generación y al consumo"
+      acciones={<Confiabilidad fases={fases} />}
       pie="Medias horarias de todo el histórico, agrupadas por fase del fenómeno."
     >
       {contraste && (
@@ -237,8 +237,8 @@ function Efecto({ efecto }) {
       )}
 
       <div className="nino-causal-grid">
-        <div className="nino-causal-card">
-          <span className="nino-causal-card__etiqueta">Generación hidráulica</span>
+        <div className="nino-causal-card nino-causal-card--hidraulica">
+          <span className="nino-causal-card__etiqueta">Hidráulica</span>
           <strong>
             {nino?.variacion_generacion_hidraulica != null
               ? `${Math.abs(nino.variacion_generacion_hidraulica).toFixed(1)}%`
@@ -246,12 +246,12 @@ function Efecto({ efecto }) {
           </strong>
           <small>
             {nino?.variacion_generacion_hidraulica != null
-              ? `en El Niño frente al neutro; en La Niña, lo contrario.`
+              ? `baja con El Niño y se recupera con La Niña.`
               : "Sin historial suficiente para comparar."}
           </small>
         </div>
-        <div className="nino-causal-card">
-          <span className="nino-causal-card__etiqueta">Generación térmica</span>
+        <div className="nino-causal-card nino-causal-card--termica">
+          <span className="nino-causal-card__etiqueta">Térmica</span>
           <strong>
             {nino?.variacion_generacion_termica != null
               ? `${Math.abs(nino.variacion_generacion_termica).toFixed(1)}%`
@@ -259,81 +259,56 @@ function Efecto({ efecto }) {
           </strong>
           <small>
             {nino?.variacion_generacion_termica != null
-              ? `sube cuando cae el agua, porque se prende la térmica más cara.`
+              ? `sube cuando la hidráulica cae y encarece el sistema.`
               : "Sin historial suficiente para comparar."}
           </small>
         </div>
-        <div className="nino-causal-card">
-          <span className="nino-causal-card__etiqueta">Consumo nacional</span>
+        <div className="nino-causal-card nino-causal-card--demanda">
+          <span className="nino-causal-card__etiqueta">Consumo</span>
           <strong>
             {nino?.variacion_demanda != null ? `${Math.abs(nino.variacion_demanda).toFixed(1)}%` : "—"}
           </strong>
           <small>
             {nino?.variacion_demanda != null
-              ? `la demanda casi no cambia, pero el sistema sí se vuelve más costoso.`
+              ? `se mantiene casi estable; el cambio real está en la mezcla de energía.`
               : "Sin historial suficiente para comparar."}
           </small>
         </div>
       </div>
 
       <p className="nino-explicacion">
-        La clave está en la mezcla energética: <b>El Niño</b> reduce la lluvia y
+        La clave es la <b>mezcla energética</b>: <b>El Niño</b> reduce la lluvia y
         baja los embalses, así que la <b>hidráulica cae</b> y el sistema debe
-        compensar con <b>generación térmica</b>, que es más cara. <b>La Niña</b>
+        compensar con <b>generación térmica</b>, que es más cara. <b>La Niña</b>{" "}
         hace lo contrario: vuelve a haber más agua, la hidroelectricidad crece y
-        el costo del sistema baja. El consumo del país no se altera tanto como el
-        precio porque la demanda es bastante estable; lo que cambia es la forma de
-        generar energía y, por eso, el costo que paga el mercado.
+        el costo del sistema baja. El <b>consumo</b> del país casi no cambia; lo
+        que sí se altera es la forma de producir energía y, por eso, el precio.
       </p>
 
-      <div className="envoltura-tabla">
-        <table className="tabla">
-          <caption className="oculto-visual">
-            Precio y demanda medios bajo cada fase del fenómeno
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">Fase</th>
-              <th scope="col">Precio</th>
-              <th scope="col">vs. normal</th>
-              <th scope="col">Demanda</th>
-              <th scope="col">vs. normal</th>
-            </tr>
-          </thead>
-          <tbody>
-            {fases.map((f) => (
-              <tr key={f.fase}>
-                {/* La muestra va bajo el nombre y no en columna propia: con seis
-                    columnas la tabla se desbordaba y la última quedaba cortada,
-                    que es la peor manera de mostrar una advertencia. */}
-                <td>
-                  <span className="tabla__nombre">{NOMBRE_FASE[f.fase] ?? f.fase}</span>
-                  <span className={f.evidencia === "debil" ? "marca-debil" : "marca-solida"}>
-                    {Math.round(f.horas / 24)} días
-                  </span>
-                </td>
-                <td>{decimales(f.precio, 1)}</td>
-                <td>
-                  <Variacion valor={f.variacion_precio} />
-                </td>
-                <td>{energia(f.demanda).valor} {energia(f.demanda).unidad}</td>
-                <td>
-                  <Variacion valor={f.variacion_demanda} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {fases.some((f) => f.evidencia === "debil") && (
-        <p className="acciones__nota">
-          Una fase de menos de {Math.round(efecto.horas_para_evidencia_solida / 24)} días
-          no cubre un año entero, así que su media es también la de los meses
-          concretos en que ocurrió. Va marcada por eso.
-        </p>
-      )}
     </Panel>
+  );
+}
+
+function Confiabilidad({ fases }) {
+  const evidenciaDebil = fases.some((fase) => fase.evidencia === "debil");
+  const nivel = evidenciaDebil ? "Media" : "Alta";
+
+  return (
+    <div className={`nino-confiabilidad nino-confiabilidad--${nivel.toLowerCase()}`}>
+      <div className="nino-confiabilidad__cabecera">
+        <span className="nino-confiabilidad__punto" aria-hidden="true" />
+        <span>Confiabilidad de datos</span>
+        <strong>{nivel}</strong>
+      </div>
+      <div className="nino-confiabilidad__fuente">
+        Fuente: XM · ONI NOAA · Open-Meteo
+      </div>
+      <div className="nino-confiabilidad__nota">
+        {evidenciaDebil
+          ? "Una fase tiene menos de un año de observaciones."
+          : "Fases con al menos un año de observaciones."}
+      </div>
+    </div>
   );
 }
 
@@ -391,35 +366,6 @@ function SerieOni({ serie }) {
         <span>{serie[serie.length - 1]?.mes}</span>
       </div>
     </Panel>
-  );
-}
-
-function DetalleDepartamento({ dato }) {
-  if (!dato) return null;
-  const sinDato = dato.anomalia == null;
-
-  return (
-    <>
-      <div className="pista__linea">
-        <span className="pista__nombre">frente a su normal</span>
-        <span className="pista__valor">
-          {sinDato ? "sin dato" : `${dato.anomalia > 0 ? "+" : ""}${decimales(dato.anomalia, 1)} °C`}
-        </span>
-      </div>
-      <div className="pista__linea">
-        <span className="pista__nombre">temperatura</span>
-        <span className="pista__valor">{decimales(dato.temperatura, 1)} °C</span>
-      </div>
-      <div className="pista__linea">
-        <span className="pista__nombre">su normal de este mes</span>
-        <span className="pista__valor">{decimales(dato.media_mensual, 1)} °C</span>
-      </div>
-      {dato.demanda_kwh != null && (
-        <div className="pista__nota">
-          {energia(dato.demanda_kwh).valor} {energia(dato.demanda_kwh).unidad} consumidos
-        </div>
-      )}
-    </>
   );
 }
 

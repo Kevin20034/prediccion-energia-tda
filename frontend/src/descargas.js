@@ -71,6 +71,13 @@ export async function descargarGrafica(nodo, nombre = "grafica") {
   guardar(blob, `${nombre}.png`);
 }
 
+/** Descarga un informe breve en texto plano para conservar la lectura del gráfico. */
+export function descargarTexto(texto, nombre = "informe") {
+  if (!texto) throw new Error("No hay informe que descargar.");
+  const blob = new Blob([texto], { type: "text/plain;charset=utf-8" });
+  guardar(blob, `${nombre}.txt`);
+}
+
 /**
  * Descarga filas como CSV.
  *

@@ -206,26 +206,9 @@ export default function MapaColombia({
             ) : detalle ? (
               detalle(flotante.dato)
             ) : (
-              <>
-                <div className="pista__linea">
-                  <span className="pista__nombre">24 h</span>
-                  <span className="pista__valor">
-                    {energia(flotante.dato.demanda_24h).valor}{" "}
-                    {energia(flotante.dato.demanda_24h).unidad}
-                  </span>
-                </div>
-                <div className="pista__linea">
-                  <span className="pista__nombre">del país</span>
-                  <span className="pista__valor">
-                    {porcentaje(flotante.dato.participacion)}
-                  </span>
-                </div>
-                <div className="pista__nota">
-                  {flotante.dato.estimado
-                    ? "valor estimado por reparto de mercado"
-                    : "atribución directa desde XM"}
-                </div>
-              </>
+              <div className="pista__nota" style={{ border: "none", marginTop: 0 }}>
+                Anomalía térmica del departamento en la ventana actual.
+              </div>
             )}
           </div>
         </div>

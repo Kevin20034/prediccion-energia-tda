@@ -486,6 +486,43 @@
   flex-wrap: wrap;
 }
 
+.grafica__descargar {
+  margin-left: auto;
+  padding: 4px 9px;
+  font-size: 10.5px;
+}
+
+.relacion-datos {
+  margin: 0 18px 8px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--observado);
+  background: var(--panel-alto);
+  border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.relacion-datos--negativa {
+  border-left-color: var(--pronostico);
+}
+
+.relacion-datos__rotulo {
+  color: var(--tinta-3);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.relacion-datos p {
+  margin: 4px 0 3px;
+  color: var(--tinta);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.relacion-datos small {
+  color: var(--tinta-3);
+  font-size: 10.5px;
+}
+
 .leyenda__clave {
   display: flex;
   align-items: center;
@@ -1348,6 +1385,19 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.nino-causal-card--hidraulica {
+  border-color: rgba(32, 192, 147, 0.6);
+}
+
+.nino-causal-card--termica {
+  border-color: rgba(240, 166, 64, 0.6);
+}
+
+.nino-causal-card--demanda {
+  border-color: rgba(90, 168, 255, 0.6);
 }
 
 .nino-causal-card__etiqueta {
@@ -1380,6 +1430,69 @@
 .nino-explicacion b {
   color: var(--tinta);
   font-weight: 600;
+}
+
+/* Procedencia y fuerza de la evidencia, visibles junto al título del efecto. */
+.nino-confiabilidad {
+  min-width: 245px;
+  padding: 7px 10px 8px;
+  background: var(--panel-alto);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+}
+
+.nino-confiabilidad--alta {
+  border-color: rgba(32, 192, 147, 0.55);
+}
+
+.nino-confiabilidad--media {
+  border-color: rgba(240, 166, 64, 0.6);
+}
+
+.nino-confiabilidad__cabecera {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--tinta-2);
+  white-space: nowrap;
+}
+
+.nino-confiabilidad__cabecera strong {
+  margin-left: auto;
+  color: var(--tinta);
+  font-size: 11px;
+}
+
+.nino-confiabilidad__punto {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--observado);
+  flex: none;
+}
+
+.nino-confiabilidad--media .nino-confiabilidad__punto {
+  background: var(--pronostico);
+}
+
+.nino-confiabilidad__fuente,
+.nino-confiabilidad__nota {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--tinta-3);
+}
+
+.nino-confiabilidad__fuente {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+@media (max-width: 620px) {
+  .nino-confiabilidad {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /* Tamaño de la muestra, bajo el nombre de la fase. */

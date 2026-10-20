@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import {
   Brush,
   CartesianGrid,
@@ -11,6 +11,7 @@ import {
 } from "recharts";
 
 import { decimales, marcaTemporal } from "../../formato";
+import { descargarGrafica, descargarTexto, nombreConFecha } from "../../descargas";
 import { COLOR, EJE, PALETA_SERIES } from "../../tokens";
 
 /**
@@ -31,20 +32,25 @@ import { COLOR, EJE, PALETA_SERIES } from "../../tokens";
 
 const ALTO = 250;
 
-export default function GraficaSeries({ respuesta, resolucion = "hora", cargando }) {
-  const grupos = useMemo(() => agruparPorUnidad(respuesta), [respuesta]);
+export default function GraficaSeries({
+  respuesta,
+  resolucion = "hora",
+  cargando,
+  alFallar,
+  informe,
+}) {
+  const datos = useMemo(() => prepararComparacion(respuesta), [respuesta]);
+  const nodo = useRef(null);
 
   if (cargando) return <div className="cargando">consultando series</div>;
-  if (!grupos.length) {
+  if (!datos.series.length) {
     return <div className="cargando">elige al menos una variable</div>;
   }
 
   return (
-    <>
-      {grupos.map((grupo, indice) => (
-        <div className="grafica" key={grupo.unidad || indice}>
+    <div className="grafica" ref={nodo}>
           <div className="leyenda">
-            {grupo.series.map((serie) => (
+            {datos.series.map((serie) => (
               <span className="leyenda__clave" key={serie.variable}>
                 <i
                   className="leyenda__trazo"
@@ -55,11 +61,32 @@ export default function GraficaSeries({ respuesta, resolucion = "hora", cargando
               </span>
             ))}
             <span className="hueco" />
-            <span className="leyenda__clave">{grupo.unidad || "sin unidad"}</span>
+            <span className="leyenda__clave">índice base 100</span>
+            <button
+              type="button"
+              className="boton boton--fantasma grafica__descargar"
+              onClick={() =>
+                descargarGrafica(
+                  nodo.current,
+                  nombreConFecha("comparacion-series")
+                ).catch(alFallar)
+              }
+              title="Descargar esta gráfica como PNG"
+            >
+              Descargar gráfico
+            </button>
+            <button
+              type="button"
+              className="boton boton--fantasma grafica__descargar"
+              onClick={() => descargarTexto(informe, nombreConFecha("informe-series"))}
+              title="Descargar el informe de la comparación"
+            >
+              Descargar informe
+            </button>
           </div>
 
           <ResponsiveContainer width="100%" height={ALTO}>
-            <LineChart data={grupo.datos} margin={{ top: 8, right: 26, bottom: 4, left: 6 }}>
+            <LineChart data={datos.filas} margin={{ top: 8, right: 26, bottom: 4, left: 6 }}>
               <CartesianGrid stroke={COLOR.linea} vertical={false} />
               <XAxis
                 dataKey="t"
@@ -79,10 +106,10 @@ export default function GraficaSeries({ respuesta, resolucion = "hora", cargando
                 domain={["auto", "auto"]}
               />
               <Tooltip
-                content={<Pista series={grupo.series} unidad={grupo.unidad} resolucion={resolucion} />}
+                content={<Pista series={datos.series} resolucion={resolucion} />}
                 cursor={{ stroke: COLOR.lineaFuerte, strokeDasharray: "3 3" }}
               />
-              {grupo.series.map((serie) => (
+              {datos.series.map((serie) => (
                 <Line
                   key={serie.variable}
                   type="monotone"
@@ -98,7 +125,7 @@ export default function GraficaSeries({ respuesta, resolucion = "hora", cargando
               {/* Solo la última gráfica lleva selector de rango: las de arriba
                   comparten eje temporal y arrastrarlo en dos sitios distintos
                   sería una fuente de confusión, no de control. */}
-              {indice === grupos.length - 1 && grupo.datos.length > 40 && (
+              {datos.filas.length > 40 && (
                 <Brush
                   dataKey="t"
                   height={22}
@@ -110,13 +137,11 @@ export default function GraficaSeries({ respuesta, resolucion = "hora", cargando
               )}
             </LineChart>
           </ResponsiveContainer>
-        </div>
-      ))}
-    </>
+    </div>
   );
 }
 
-function Pista({ active, payload, label, series, unidad, resolucion }) {
+function Pista({ active, payload, label, series, resolucion }) {
   if (!active || !payload?.length) return null;
   const porVariable = new Map(series.map((s) => [s.variable, s]));
 
@@ -135,12 +160,41 @@ function Pista({ active, payload, label, series, unidad, resolucion }) {
               />
               {porVariable.get(fila.dataKey)?.etiqueta ?? fila.dataKey}
             </span>
-            <span className="pista__valor">{decimales(fila.value, 1)}</span>
+            <span className="pista__valor">{decimales(fila.payload.originales?.[fila.dataKey], 1)}</span>
           </div>
         ))}
-      <div className="pista__nota">{unidad}</div>
+      <div className="pista__nota">valor original · escala comparativa base 100</div>
     </div>
   );
+}
+
+function prepararComparacion(respuesta) {
+  if (!respuesta?.series?.length) return { series: [], filas: [] };
+
+  const series = respuesta.series.map((serie, indice) => ({
+    variable: serie.variable,
+    etiqueta: serie.etiqueta,
+    unidad: serie.unidad,
+    color: PALETA_SERIES[indice % PALETA_SERIES.length],
+  }));
+  const filas = new Map();
+  const bases = new Map();
+
+  for (const serie of respuesta.series) {
+    for (const punto of serie.puntos) {
+      const t = new Date(punto.fecha_hora).getTime();
+      if (!filas.has(t)) filas.set(t, { t, originales: {} });
+      const fila = filas.get(t);
+      fila.originales[serie.variable] = punto.valor;
+      if (punto.valor != null && !bases.has(serie.variable) && punto.valor !== 0) {
+        bases.set(serie.variable, punto.valor);
+      }
+      const base = bases.get(serie.variable);
+      fila[serie.variable] = punto.valor == null || !base ? null : (punto.valor / base) * 100;
+    }
+  }
+
+  return { series, filas: [...filas.values()].sort((a, b) => a.t - b.t) };
 }
 
 /**

@@ -23,7 +23,7 @@ const RESOLUCIONES = [
   { valor: "mes", etiqueta: "Mensual" },
 ];
 
-const MAX_SERIES = 6;
+const MAX_SERIES = 3;
 const SELECCION_INICIAL = ["precio_bolsa", "volumen_util_embalse"];
 
 export default function Datos({ puedeOperar, alFallar, alAvisar }) {
@@ -186,7 +186,14 @@ export default function Datos({ puedeOperar, alFallar, alAvisar }) {
             maximo={MAX_SERIES}
           />
         </div>
-        <GraficaSeries respuesta={respuesta} resolucion={resolucion} cargando={cargando} />
+        {!cargando && <MensajeRelacion respuesta={respuesta} />}
+        <GraficaSeries
+          respuesta={respuesta}
+          resolucion={resolucion}
+          cargando={cargando}
+          alFallar={alFallar}
+          informe={crearInforme(respuesta, resolucion)}
+        />
       </Panel>
 
       {upme?.escenarios?.length > 0 && (
@@ -203,6 +210,104 @@ export default function Datos({ puedeOperar, alFallar, alAvisar }) {
       )}
     </div>
   );
+}
+
+function crearInforme(respuesta, resolucion) {
+  const series = respuesta?.series ?? [];
+  const relacion = interpretarRelacion(respuesta);
+  const nombres = series.map((serie) => `${serie.etiqueta} (${serie.unidad})`).join(", ");
+  const lineas = [
+    "INFORME DE COMPARACIÓN DE SERIES",
+    "",
+    `Resolución: ${resolucion}`,
+    `Variables: ${nombres || "sin selección"}`,
+    `Puntos consultados: ${series.reduce((total, serie) => total + serie.puntos.length, 0)}`,
+    "",
+  ];
+
+  if (relacion) {
+    lineas.push(
+      "LECTURA",
+      relacion.mensaje,
+      `Correlación de Pearson: ${relacion.valor > 0 ? "+" : ""}${relacion.valor.toFixed(2)}`,
+      "La correlación indica asociación entre las series, no demuestra causalidad.",
+    );
+  } else {
+    lineas.push("LECTURA", "No hay suficientes puntos coincidentes para calcular una relación.");
+  }
+
+  lineas.push(
+    "",
+    "Escala del gráfico: cada serie está expresada como índice base 100 respecto a su primer dato válido.",
+    "Fuente: series históricas del sistema energético.",
+  );
+  return lineas.join("\n");
+}
+
+function MensajeRelacion({ respuesta }) {
+  const relacion = interpretarRelacion(respuesta);
+  if (!relacion) return null;
+
+  return (
+    <div className={`relacion-datos relacion-datos--${relacion.tipo}`} role="status">
+      <div className="relacion-datos__rotulo">Lectura del gráfico</div>
+      <p>{relacion.mensaje}</p>
+      <small>
+        Correlación de Pearson: {relacion.valor > 0 ? "+" : ""}
+        {relacion.valor.toFixed(2)} · indica asociación, no causalidad.
+      </small>
+    </div>
+  );
+}
+
+function interpretarRelacion(respuesta) {
+  const series = respuesta?.series ?? [];
+  if (series.length < 2) return null;
+
+  const pares = series.map((serie) => {
+    const porFecha = new Map(
+      serie.puntos
+        .filter((punto) => punto.valor != null)
+        .map((punto) => [new Date(punto.fecha_hora).getTime(), punto.valor])
+    );
+    return { ...serie, porFecha };
+  });
+
+  let mejor = null;
+  for (let i = 0; i < pares.length - 1; i += 1) {
+    for (let j = i + 1; j < pares.length; j += 1) {
+      const puntos = [...pares[i].porFecha]
+        .map(([fecha, valor]) => [valor, pares[j].porFecha.get(fecha)])
+        .filter(([, valor]) => valor != null);
+      const valor = correlacion(puntos);
+      if (valor != null && (!mejor || Math.abs(valor) > Math.abs(mejor.valor))) {
+        mejor = { izquierda: pares[i].etiqueta, derecha: pares[j].etiqueta, valor };
+      }
+    }
+  }
+
+  if (!mejor) return null;
+  const intensidad = Math.abs(mejor.valor);
+  const tipo = mejor.valor >= 0 ? "positiva" : "negativa";
+  const direccion = mejor.valor >= 0 ? "en la misma dirección" : "en direcciones opuestas";
+  const fuerza = intensidad >= 0.7 ? "fuerte" : intensidad >= 0.4 ? "moderada" : "débil";
+
+  return {
+    tipo,
+    valor: mejor.valor,
+    mensaje: `${mejor.izquierda} y ${mejor.derecha} muestran una relación ${fuerza}: se mueven ${direccion} en el periodo seleccionado.`,
+  };
+}
+
+function correlacion(puntos) {
+  if (puntos.length < 3) return null;
+  const mediaX = puntos.reduce((suma, [x]) => suma + x, 0) / puntos.length;
+  const mediaY = puntos.reduce((suma, [, y]) => suma + y, 0) / puntos.length;
+  const numerador = puntos.reduce((suma, [x, y]) => suma + (x - mediaX) * (y - mediaY), 0);
+  const denominadorX = Math.sqrt(puntos.reduce((suma, [x]) => suma + (x - mediaX) ** 2, 0));
+  const denominadorY = Math.sqrt(puntos.reduce((suma, [, y]) => suma + (y - mediaY) ** 2, 0));
+  if (!denominadorX || !denominadorY) return null;
+  return numerador / (denominadorX * denominadorY);
 }
 
 function SelectorVariables({ catalogo, seleccion, alAlternar, maximo }) {
