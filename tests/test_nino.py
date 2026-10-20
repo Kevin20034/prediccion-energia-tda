@@ -90,6 +90,33 @@ class TestEfecto:
         assert por_fase["EL_NINO"]["variacion_demanda"] == pytest.approx(1.0, abs=0.1)
         assert por_fase["NEUTRO"]["variacion_precio"] is None
 
+    def test_explica_impacto_en_generacion_y_demanda(self, cliente, db, usuario_admin):
+        _sembrar(db, "NEUTRO", 9000, precio=400.0, demanda=9_000_000.0, oni=0.1)
+        _sembrar(db, "EL_NINO", 9000, precio=600.0, demanda=9_090_000.0, oni=1.5)
+
+        # La energía hidráulica cae y la térmica sube sin que cambie mucho el consumo.
+        db.add(
+            DatoHistorico(
+                fecha_hora=datetime(2023, 1, 1, tzinfo=UTC),
+                precio_bolsa=600.0,
+                demanda_real=9_090_000.0,
+                generacion_hidraulica=800.0,
+                generacion_termica=200.0,
+                temperatura=25.0,
+                indice_oni=1.5,
+                fenomeno_climatico="EL_NINO",
+            )
+        )
+        db.commit()
+
+        r = cliente.get("/nino/efecto", headers=cabecera(token_de(cliente, usuario_admin.email)))
+
+        por_fase = {f["fase"]: f for f in r.json()["fases"]}
+        assert por_fase["EL_NINO"]["generacion_hidraulica"] == pytest.approx(800.0, abs=0.1)
+        assert por_fase["EL_NINO"]["generacion_termica"] == pytest.approx(200.0, abs=0.1)
+        assert por_fase["EL_NINO"]["variacion_generacion_hidraulica"] is not None
+        assert por_fase["EL_NINO"]["variacion_generacion_termica"] is not None
+
     def test_sin_datos_devuelve_lista_vacia(self, cliente, usuario_admin):
         r = cliente.get("/nino/efecto", headers=cabecera(token_de(cliente, usuario_admin.email)))
         assert r.status_code == 200

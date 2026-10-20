@@ -218,6 +218,8 @@ def efecto(db: SesionBD, _usuario: UsuarioActual) -> RespuestaEfecto:
             func.avg(DatoHistorico.precio_bolsa),
             func.avg(DatoHistorico.demanda_real),
             func.avg(DatoHistorico.temperatura),
+            func.avg(DatoHistorico.generacion_hidraulica),
+            func.avg(DatoHistorico.generacion_termica),
         )
         .where(DatoHistorico.fenomeno_climatico.is_not(None))
         .group_by(DatoHistorico.fenomeno_climatico)
@@ -233,9 +235,11 @@ def efecto(db: SesionBD, _usuario: UsuarioActual) -> RespuestaEfecto:
             precio=_redondeo(precio, 1),
             demanda=_redondeo(demanda, 0),
             temperatura=_redondeo(temperatura, 2),
+            generacion_hidraulica=_redondeo(hidraulica, 0),
+            generacion_termica=_redondeo(termica, 0),
             evidencia="solida" if horas >= HORAS_EVIDENCIA_SOLIDA else "debil",
         )
-        for fase, horas, precio, demanda, temperatura in filas
+        for fase, horas, precio, demanda, temperatura, hidraulica, termica in filas
     }
 
     referencia = fases.get(FASE_NEUTRA)
@@ -245,6 +249,12 @@ def efecto(db: SesionBD, _usuario: UsuarioActual) -> RespuestaEfecto:
                 continue
             dato.variacion_precio = _variacion(dato.precio, referencia.precio)
             dato.variacion_demanda = _variacion(dato.demanda, referencia.demanda)
+            dato.variacion_generacion_hidraulica = _variacion(
+                dato.generacion_hidraulica, referencia.generacion_hidraulica
+            )
+            dato.variacion_generacion_termica = _variacion(
+                dato.generacion_termica, referencia.generacion_termica
+            )
 
     # Orden fijo y no el que devuelva la base: la interfaz los pinta en fila y
     # que bailen entre consultas hace ilegible la comparación.

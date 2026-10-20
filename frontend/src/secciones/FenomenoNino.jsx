@@ -209,6 +209,10 @@ function Efecto({ efecto }) {
     return decimales(nino.precio / nina.precio, 1);
   }, [fases]);
 
+  const nino = fases.find((f) => f.fase === "EL_NINO");
+  const nina = fases.find((f) => f.fase === "LA_NINA");
+  const neutro = fases.find((f) => f.fase === "NEUTRO");
+
   if (!fases.length) {
     return (
       <Panel rotulo="Efecto" titulo="Qué le hace al mercado">
@@ -231,6 +235,56 @@ function Efecto({ efecto }) {
           porque sin agua en los embalses entra la generación térmica.
         </p>
       )}
+
+      <div className="nino-causal-grid">
+        <div className="nino-causal-card">
+          <span className="nino-causal-card__etiqueta">Generación hidráulica</span>
+          <strong>
+            {nino?.variacion_generacion_hidraulica != null
+              ? `${Math.abs(nino.variacion_generacion_hidraulica).toFixed(1)}%`
+              : "—"}
+          </strong>
+          <small>
+            {nino?.variacion_generacion_hidraulica != null
+              ? `en El Niño frente al neutro; en La Niña, lo contrario.`
+              : "Sin historial suficiente para comparar."}
+          </small>
+        </div>
+        <div className="nino-causal-card">
+          <span className="nino-causal-card__etiqueta">Generación térmica</span>
+          <strong>
+            {nino?.variacion_generacion_termica != null
+              ? `${Math.abs(nino.variacion_generacion_termica).toFixed(1)}%`
+              : "—"}
+          </strong>
+          <small>
+            {nino?.variacion_generacion_termica != null
+              ? `sube cuando cae el agua, porque se prende la térmica más cara.`
+              : "Sin historial suficiente para comparar."}
+          </small>
+        </div>
+        <div className="nino-causal-card">
+          <span className="nino-causal-card__etiqueta">Consumo nacional</span>
+          <strong>
+            {nino?.variacion_demanda != null ? `${Math.abs(nino.variacion_demanda).toFixed(1)}%` : "—"}
+          </strong>
+          <small>
+            {nino?.variacion_demanda != null
+              ? `la demanda casi no cambia, pero el sistema sí se vuelve más costoso.`
+              : "Sin historial suficiente para comparar."}
+          </small>
+        </div>
+      </div>
+
+      <p className="nino-explicacion">
+        La clave está en la mezcla energética: <b>El Niño</b> reduce la lluvia y
+        baja los embalses, así que la <b>hidráulica cae</b> y el sistema debe
+        compensar con <b>generación térmica</b>, que es más cara. <b>La Niña</b>
+        hace lo contrario: vuelve a haber más agua, la hidroelectricidad crece y
+        el costo del sistema baja. El consumo del país no se altera tanto como el
+        precio porque la demanda es bastante estable; lo que cambia es la forma de
+        generar energía y, por eso, el costo que paga el mercado.
+      </p>
 
       <div className="envoltura-tabla">
         <table className="tabla">

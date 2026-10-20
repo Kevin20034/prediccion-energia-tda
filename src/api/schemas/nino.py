@@ -49,18 +49,22 @@ class RespuestaMapa(BaseModel):
 
 
 class EfectoFase(BaseModel):
-    """Precio y demanda medios bajo una fase ENSO."""
+    """Precio, demanda y generación medios bajo una fase ENSO."""
 
     fase: str
     horas: int
     precio: float | None = None
     demanda: float | None = None
     temperatura: float | None = None
+    generacion_hidraulica: float | None = None
+    generacion_termica: float | None = None
 
     #: Variación porcentual frente a la fase neutra. `None` para NEUTRO, que es
     #: la propia referencia.
     variacion_precio: float | None = None
     variacion_demanda: float | None = None
+    variacion_generacion_hidraulica: float | None = None
+    variacion_generacion_termica: float | None = None
 
     #: "solida" o "debil". Una fase con pocas horas no sostiene una afirmación,
     #: y la interfaz tiene que poder decirlo en vez de presentarlo todo igual.

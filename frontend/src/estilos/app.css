@@ -1333,6 +1333,55 @@
   font-weight: 600;
 }
 
+.nino-causal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.nino-causal-card {
+  background: var(--panel-alto);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nino-causal-card__etiqueta {
+  font-size: 11px;
+  color: var(--tinta-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nino-causal-card strong {
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--tinta);
+  letter-spacing: -0.04em;
+}
+
+.nino-causal-card small {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--tinta-2);
+}
+
+.nino-explicacion {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tinta-2);
+}
+
+.nino-explicacion b {
+  color: var(--tinta);
+  font-weight: 600;
+}
+
 /* Tamaño de la muestra, bajo el nombre de la fase. */
 .marca-debil,
 .marca-solida {
